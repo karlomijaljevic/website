@@ -1,0 +1,19 @@
+{@java.lang.String title}
+{@java.util.List<xyz.mijaljevic.orm.model.BlogLink> blogs}
+<!doctype html>
+<!--Hello there page inspector. In case you find any errors/issues-->
+<!--or bugs please report them either on the page Github repository-->
+<!--or via email :)-->
+<html lang="en">
+	{#include core/head /}
+	<body>
+		{#include core/header /}
+		<h1 class="page-title">Blog</h1>
+		{#for blog in blogs}
+		<div class="latest-blogs-section">
+			<a href="/blog/{blog.id}">{blog.title}</a>
+			<span>{blog.date}</span>
+		</div>
+		{/for}
+	</body>
+</html>

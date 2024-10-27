@@ -1,0 +1,44 @@
+application:
+  cache-control: public, max-age=0, must-revalidate
+  blogs-directory: blogs
+  images-directory: static/images
+  css-directory: static/css
+quarkus:
+  package:
+    jar:
+      type: "uber-jar"
+      add-runner-suffix: false
+  devservices:
+    enabled: false
+  http:
+    port: 8080
+    header:
+      Server:
+        path: /*
+        value: Potato
+      Host:
+        path: /*
+        value: Me
+      X-Powered-By:
+        path: /*
+        value: \(^~^)/
+      From:
+        path: /*
+        value: A lovely chap
+  datasource:
+    db-kind: h2
+    username: karlo
+    jdbc:
+      url: jdbc:h2:./website
+  hibernate-orm:
+    database:
+      generation: none
+  log:
+    file:
+      enable: true
+      path: logs/website.log
+      rotation:
+        max-file-size: 20M
+        max-backup-index: 10
+        file-suffix: _dd-MM-yyyy
+        rotate-on-boot: true

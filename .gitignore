@@ -1,0 +1,13 @@
+# Maven
+target/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Project
+logs/
+website.mv.db
+website.trace.db
+.env

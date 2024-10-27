@@ -1,0 +1,19 @@
+{@java.lang.String title}
+{@xyz.mijaljevic.orm.model.Blog blog}
+<!doctype html>
+<!--Hello there page inspector. In case you find any errors/issues-->
+<!--or bugs please report them either on the page Github repository-->
+<!--or via email :)-->
+<html lang="en">
+	{#include core/head /}
+	<body>
+		{#include core/header /}
+		{blog.data.raw}
+		<div id="blog-metadata">
+			<span class="blog-medatada-date">Created at: {blog.parseCreated()}</span>
+			{#if !blog.parseUpdated().isEmpty()}
+			<span class="blog-medatada-date">Updated at: {blog.parseUpdated()}</span>
+			{/if}
+		</div>
+	</body>
+</html>
