@@ -10,15 +10,8 @@ quarkus:
       add-runner-suffix: false
   devservices:
     enabled: false
-  tls:
-    key-store:
-      pem:
-        0:
-          cert: ./certs/cert.pem
-          key: ./certs/key.pem
   http:
-    ssl-port: 8080
-    insecure-requests: disabled
+    port: 8080
     header:
       Server:
         path: /*

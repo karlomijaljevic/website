@@ -7,7 +7,6 @@ target/
 .settings/
 
 # Project
-certs/
 logs/
 website.mv.db
 website.trace.db
