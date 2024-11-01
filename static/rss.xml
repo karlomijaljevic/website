@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom">
+	<channel>
+		<title>Karlo Mijaljević</title>
+		<link>https://karlo.mijaljevic.xyz</link>
+		<description>Recent blogs from Karlo Mijaljević.</description>
+		<language>en</language>
+    	<lastBuildDate></lastBuildDate>
+    	<webMaster>karlo.mijaljevic@gmail.com (Karlo Mijaljević)</webMaster>
+    	<atom:link href="https://karlo.mijaljevic.xyz/rss.xml" rel="self" type="application/rss+xml"/>
+	</channel>
+</rss>

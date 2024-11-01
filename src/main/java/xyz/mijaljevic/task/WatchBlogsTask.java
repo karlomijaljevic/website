@@ -2,9 +2,11 @@ package xyz.mijaljevic.task;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
@@ -24,6 +26,10 @@ import xyz.mijaljevic.ExitCodes;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.orm.BlogService;
 import xyz.mijaljevic.orm.model.Blog;
+import xyz.mijaljevic.orm.model.Item;
+import xyz.mijaljevic.orm.model.Rss;
+import xyz.mijaljevic.web.RssFeed;
+import xyz.mijaljevic.web.page.HomePage;
 import xyz.mijaljevic.web.page.PageHelper;
 
 /**
@@ -58,6 +64,17 @@ public final class WatchBlogsTask
 	 * {@link Pattern} instance used to match blog titles.
 	 */
 	private static final Pattern BLOG_TITLE_PATTERN = Pattern.compile("<h1 class=\\\"page\\-title\\\">(.*)</h1>");
+
+	/**
+	 * Blogs are only HTML files therefore the .html extension is expected. This
+	 * {@link Pattern} checks that.
+	 */
+	private static final Pattern BLOG_FILE_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-]+\\.html$");
+
+	/**
+	 * URL used by the website, should stay mijaljevic.xyz as long as I live I hope.
+	 */
+	private static final String WEBSITE_URL = "https://mijaljevic.xyz/";
 
 	/**
 	 * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and performs
@@ -98,8 +115,11 @@ public final class WatchBlogsTask
 
 		for (File file : files)
 		{
-			consumeBlogFile(file);
-			fileNames.add(file.getName());
+			if (isFileHtml(file))
+			{
+				consumeBlogFile(file);
+				fileNames.add(file.getName());
+			}
 		}
 
 		List<Blog> blogs = blogService.listAllBlogsMissingFromFileNames(fileNames);
@@ -112,6 +132,8 @@ public final class WatchBlogsTask
 		}
 
 		PageHelper.updateCacheControlHeaders();
+
+		updateRssFeed();
 	}
 
 	/**
@@ -131,6 +153,7 @@ public final class WatchBlogsTask
 		}
 
 		boolean changeOccurred = false;
+		boolean blogCreated = false;
 
 		for (WatchEvent<?> event : WatchKey.pollEvents())
 		{
@@ -149,6 +172,11 @@ public final class WatchBlogsTask
 			Path filename = ev.context();
 
 			File file = Website.BlogsDirectory.toPath().resolve(filename).toFile();
+
+			if (!isFileHtml(file))
+			{
+				continue;
+			}
 
 			if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY)
 			{
@@ -169,11 +197,18 @@ public final class WatchBlogsTask
 			}
 
 			changeOccurred = true;
+			// For the RSS FEED update
+			blogCreated = kind == StandardWatchEventKinds.ENTRY_CREATE;
 		}
 
 		if (changeOccurred)
 		{
 			PageHelper.updateCacheControlHeaders();
+		}
+
+		if (blogCreated)
+		{
+			updateRssFeed();
 		}
 
 		WatchKeyValid = WatchKey.reset();
@@ -242,6 +277,69 @@ public final class WatchBlogsTask
 		Website.BLOG_CACHE.put(blog.getFileName(), blog);
 
 		return true;
+	}
+
+	/**
+	 * Updates the items served by the RSS feed.
+	 */
+	private static final void updateRssFeed()
+	{
+		List<Item> items = new ArrayList<Item>();
+
+		Website.BLOG_CACHE.values().stream().sorted().limit(HomePage.NUMBER_OF_BLOGS_TO_DISPLAY).forEach(blog -> {
+			Item item = new Item();
+
+			String filePath = Website.BlogsDirectory.getPath() + File.separator + blog.getFileName();
+
+			try
+			{
+				item.setDescription(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));
+			}
+			catch (IOException e)
+			{
+				Log.error("Failed to read the '" + blog.getFileName() + "' blog contents for RSS!", e);
+
+				return;
+			}
+
+			item.setGuid(WEBSITE_URL + "blog/" + blog.getId());
+			item.setLink(WEBSITE_URL + "blog/" + blog.getId());
+			item.setPubDate(blog.getCreated().format(RssFeed.RSS_SPEC_FORMAT));
+			item.setTitle(blog.getTitle());
+
+			items.add(item);
+		});
+
+		Rss current = RssFeed.getRssFeed();
+
+		Blog lastUpdatedBlog = Website.BLOG_CACHE.values().stream().sorted().findFirst().orElse(null);
+
+		if (lastUpdatedBlog != null)
+		{
+			current.getChannel().setLastBuildDate(lastUpdatedBlog.getCreated().format(RssFeed.RSS_SPEC_FORMAT));
+		}
+
+		current.getChannel().setItems(items);
+
+		RssFeed.updateRssFeed(current);
+	}
+
+	/**
+	 * Checks if the provided {@link File} is a HTML file (checks only the file
+	 * extension).
+	 * 
+	 * @param file A {@link File} instance to check.
+	 * 
+	 * @return Returns true if the file is in the proper format, denoted by the
+	 *         <i>BLOG_FILE_PATTERN</i> {@link Pattern} instance. False otherwise.
+	 */
+	private static final boolean isFileHtml(File file)
+	{
+		String name = file.getName();
+
+		Matcher match = BLOG_FILE_PATTERN.matcher(name);
+
+		return match.find();
 	}
 
 	/**

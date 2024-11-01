@@ -8,7 +8,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * Functional helper class for task/file related operations.
+ * Functional helper class for file related operations.
  * 
  * @author karlo
  * 

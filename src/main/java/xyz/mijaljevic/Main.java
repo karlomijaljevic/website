@@ -15,8 +15,6 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 @QuarkusMain
 public final class Main
 {
-	// TODO: Write some simple test cases for the website.
-
 	public static final void main(String... args)
 	{
 		Quarkus.run(Website.class, args);

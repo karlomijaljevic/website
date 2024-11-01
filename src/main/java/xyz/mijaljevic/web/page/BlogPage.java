@@ -40,9 +40,6 @@ import xyz.mijaljevic.orm.model.Blog;
 @Path("/blog/{id}")
 public final class BlogPage
 {
-	@ConfigProperty(name = "application.blogs-directory", defaultValue = "blogs")
-	private String blogsDirectoryPath;
-
 	@ConfigProperty(name = "application.cache-control")
 	private String cacheControl;
 
@@ -85,7 +82,7 @@ public final class BlogPage
 		{
 			try
 			{
-				blog = syncBlogData(blog, blogsDirectoryPath);
+				blog = syncBlogData(blog);
 			}
 			catch (IOException e)
 			{
@@ -111,14 +108,13 @@ public final class BlogPage
 	 * Reads the data from the blog file and puts the updated blog reference back
 	 * into the blogs cache updating the data.
 	 * 
-	 * @param blog               The {@link Blog} entity that has been requested.
-	 * @param blogsDirectoryPath The {@link String} path to the blogs directory.
+	 * @param blog The {@link Blog} entity that has been requested.
 	 * 
 	 * @return Returns the updated {@link Blog} reference.
 	 * 
 	 * @throws IOException In case it failed to read the blog data from the file.
 	 */
-	private static final synchronized Blog syncBlogData(Blog blog, String blogsDirectoryPath) throws IOException
+	private static final synchronized Blog syncBlogData(Blog blog) throws IOException
 	{
 		// Check if it has been synced by a close called thread
 		Blog synced = Website.BLOG_CACHE.get(blog.getFileName());
@@ -128,7 +124,7 @@ public final class BlogPage
 			return synced;
 		}
 
-		String filePath = blogsDirectoryPath + File.separator + blog.getFileName();
+		String filePath = Website.BlogsDirectory.getPath() + File.separator + blog.getFileName();
 
 		blog.setData(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));
 

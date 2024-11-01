@@ -8,6 +8,10 @@ import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import xyz.mijaljevic.orm.model.Rss;
+import xyz.mijaljevic.web.RssFeed;
 
 /**
  * Handles lifecycle events e.g. application startup.
@@ -29,6 +33,9 @@ public final class LifecycleHandler
 
 	@ConfigProperty(name = "application.css-directory", defaultValue = "static/css")
 	private String cssDirectoryPath;
+
+	@ConfigProperty(name = "application.rss-feed", defaultValue = "rss.xml")
+	private String rssFilePath;
 
 	final void onStart(@Observes StartupEvent event)
 	{
@@ -52,6 +59,15 @@ public final class LifecycleHandler
 			ExitCodes.CSS_DIRECTORY_SETUP_FAILED.logAndExit();
 		}
 		Log.info("Successfully configured the css directory reference.");
+
+		Rss rss = readRssFeed(new File(rssFilePath));
+		if (rss == null)
+		{
+			ExitCodes.RSS_FILE_PARSING_FAILED.logAndExit();
+		}
+		rss.getChannel().setLastBuildDate(RssFeed.DEFAULT_LAST_BUILD_DATE);
+		RssFeed.updateRssFeed(rss);
+		Log.info("Successfully initialized the RSS feed root content.");
 	}
 
 	/**
@@ -81,5 +97,29 @@ public final class LifecycleHandler
 		}
 
 		return directory;
+	}
+
+	/**
+	 * Parses the provided file into a {@link Rss} instance. In case the provided
+	 * file was not a RSS XML the method returns null.
+	 * 
+	 * @param file A {@link File} to parse
+	 * 
+	 * @return Returns a {@link Rss} instance. In case the provided file was not a
+	 *         RSS XML the method returns null.
+	 */
+	private static final Rss readRssFeed(File file)
+	{
+		try
+		{
+			Unmarshaller jaxbUnmarshaller = RssFeed.RSS_JAXB_CONTEXT.createUnmarshaller();
+			return (Rss) jaxbUnmarshaller.unmarshal(file);
+		}
+		catch (JAXBException e)
+		{
+			Log.error("Failed to parse the RSS feed XML file!", e);
+
+			return null;
+		}
 	}
 }

@@ -45,7 +45,7 @@ public final class HomePage
 	/**
 	 * Limit of latest blogs to display on the page.
 	 */
-	private static final int NUMBER_OF_BLOGS_TO_DISPLAY = 8;
+	public static final int NUMBER_OF_BLOGS_TO_DISPLAY = 8;
 
 	/**
 	 * HTML title of the home page.
@@ -66,6 +66,14 @@ public final class HomePage
 		}
 
 		List<BlogLink> blogs = new ArrayList<BlogLink>();
+
+		/**
+		 * TODO: Home page blogs last created cache feature.
+		 * 
+		 * The home page blogs should be always cached (their data). Just as it is
+		 * always kept in the RSS object (maybe even reduce the memory impact and
+		 * reference the blogs from the rss feed).
+		 */
 
 		Website.BLOG_CACHE.values().stream().sorted().limit(NUMBER_OF_BLOGS_TO_DISPLAY).forEach(blog -> {
 			BlogLink blogLink = new BlogLink();

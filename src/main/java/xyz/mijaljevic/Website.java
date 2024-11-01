@@ -56,6 +56,14 @@ public final class Website implements QuarkusApplication
 	@Override
 	public final int run(String... args) throws Exception
 	{
+		/**
+		 * TODO: Website improvements.
+		 * 
+		 * Code should be shuffled around classes to better reflect the relations
+		 * between them and to isolate as much functionality from e.g. tasks and pages
+		 * etc.
+		 */
+
 		Quarkus.waitForExit();
 
 		return 0;

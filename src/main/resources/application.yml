@@ -3,6 +3,7 @@ application:
   blogs-directory: blogs
   images-directory: static/images
   css-directory: static/css
+  rss-feed: static/rss.xml
 quarkus:
   package:
     jar:
