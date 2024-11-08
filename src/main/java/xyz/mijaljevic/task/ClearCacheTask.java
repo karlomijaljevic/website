@@ -31,7 +31,7 @@ public final class ClearCacheTask
 	 * Clears the blogs cache, removes blogs that have not been read for a long
 	 * time, while keeping the often read blogs in memory. It does this every hour.
 	 */
-	@Scheduled(identity = "clear_blogs_cache", every = "1h")
+	@Scheduled(identity = "clear_blogs_cache", every = "1h", delayed = "5s")
 	final void clearBlogsCache()
 	{
 		Website.BLOG_CACHE.entrySet().stream().forEach(entry -> {

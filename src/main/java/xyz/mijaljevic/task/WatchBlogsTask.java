@@ -12,6 +12,8 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.security.NoSuchAlgorithmException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -142,7 +144,7 @@ public final class WatchBlogsTask
 	 * blogs directory and this method creates/updates/deletes entries in the DB
 	 * accordingly.
 	 */
-	@Scheduled(identity = "watch_blogs_task", every = "5m")
+	@Scheduled(identity = "watch_blogs_task", every = "5m", delayed = "5s")
 	final void runWatchBlogsTask()
 	{
 		if (!WatchKeyValid)
@@ -304,8 +306,11 @@ public final class WatchBlogsTask
 
 			item.setGuid(WEBSITE_URL + "blog/" + blog.getId());
 			item.setLink(WEBSITE_URL + "blog/" + blog.getId());
-			item.setPubDate(blog.getCreated().format(RssFeed.RSS_SPEC_FORMAT));
 			item.setTitle(blog.getTitle());
+
+			String pubDate = ZonedDateTime.from(blog.getCreated().atZone(ZoneId.systemDefault()))
+					.format(RssFeed.RSS_SPEC_FORMAT);
+			item.setPubDate(pubDate);
 
 			items.add(item);
 		});
@@ -316,7 +321,9 @@ public final class WatchBlogsTask
 
 		if (lastUpdatedBlog != null)
 		{
-			current.getChannel().setLastBuildDate(lastUpdatedBlog.getCreated().format(RssFeed.RSS_SPEC_FORMAT));
+			String pubDate = ZonedDateTime.from(lastUpdatedBlog.getCreated().atZone(ZoneId.systemDefault()))
+					.format(RssFeed.RSS_SPEC_FORMAT);
+			current.getChannel().setLastBuildDate(pubDate);
 		}
 
 		current.getChannel().setItems(items);

@@ -15,6 +15,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.xml.bind.JAXBContext;
@@ -35,7 +36,7 @@ import xyz.mijaljevic.web.page.PageHelper;
  * @version 1.0.0
  */
 @PermitAll
-@Path("/rss.xml")
+@Path("/rss")
 public final class RssFeed
 {
 	@ConfigProperty(name = "application.rss-feed", defaultValue = "rss.xml")
@@ -70,7 +71,7 @@ public final class RssFeed
 
 	@GET
 	@NonBlocking
-	@Produces("application/rss+xml")
+	@Produces(MediaType.TEXT_XML)
 	public Response getRss()
 	{
 		String rssFeed = fetchRssFeed();

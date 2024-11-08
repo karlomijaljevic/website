@@ -110,7 +110,7 @@ public final class WatchCssTask
 	 * css directory and this method creates/updates/deletes entries in the DB
 	 * accordingly.
 	 */
-	@Scheduled(identity = "watch_css_task", every = "5m")
+	@Scheduled(identity = "watch_css_task", every = "5m", delayed = "5s")
 	final void runWatchCssTask()
 	{
 		if (!WatchKeyValid)

@@ -1,6 +1,6 @@
 -- Generates the schema for the website H2 DB
 -- Use command: runscript from 'create-website-db.sql' to generate DB tables
-;              
+;
 CREATE SEQUENCE "PUBLIC"."BLOG_SEQ" START WITH 1;
 CREATE SEQUENCE "PUBLIC"."STATIC_FILE_SEQ" START WITH 1 RESTART WITH 3;
 CREATE CACHED TABLE "PUBLIC"."BLOG"(
