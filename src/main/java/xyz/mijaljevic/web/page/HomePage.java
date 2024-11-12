@@ -18,7 +18,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.orm.model.BlogLink;
+import xyz.mijaljevic.model.dto.BlogLink;
+import xyz.mijaljevic.web.WebHelper;
+import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Home page of the website.
@@ -27,7 +29,7 @@ import xyz.mijaljevic.orm.model.BlogLink;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @Path("/")
 @PermitAll
@@ -43,11 +45,6 @@ public final class HomePage
 	private Template homePage;
 
 	/**
-	 * Limit of latest blogs to display on the page.
-	 */
-	public static final int NUMBER_OF_BLOGS_TO_DISPLAY = 8;
-
-	/**
 	 * HTML title of the home page.
 	 */
 	private static final String TITLE = "Karlo Mijaljević";
@@ -57,35 +54,21 @@ public final class HomePage
 	@Produces(MediaType.TEXT_HTML)
 	public Response getPage()
 	{
-		String eTag = PageHelper.getETag();
-		String lastModified = PageHelper.getLastModified();
+		String eTag = WebHelper.getETag();
+		String lastModified = WebHelper.getLastModified();
 
-		if (!PageHelper.hasResourceChanged(httpHeaders, eTag, lastModified))
+		if (!WebHelper.hasResourceChanged(httpHeaders, eTag, lastModified))
 		{
 			return Response.status(Status.NOT_MODIFIED).build();
 		}
 
 		List<BlogLink> blogs = new ArrayList<BlogLink>();
 
-		/**
-		 * TODO: Home page blogs last created cache feature.
-		 * 
-		 * The home page blogs should be always cached (their data). Just as it is
-		 * always kept in the RSS object (maybe even reduce the memory impact and
-		 * reference the blogs from the rss feed).
-		 */
-
-		Website.BLOG_CACHE.values().stream().sorted().limit(NUMBER_OF_BLOGS_TO_DISPLAY).forEach(blog -> {
-			BlogLink blogLink = new BlogLink();
-
-			blogLink.setId(blog.getId());
-			blogLink.setTitle(blog.getTitle());
-			blogLink.setDate(blog.parseCreated());
-
-			blogs.add(blogLink);
+		Website.retrieveRecentBlogs().forEach(blog -> {
+			blogs.add(BlogLink.generateBlogLinkFromBlog(blog));
 		});
 
-		TemplateInstance template = homePage.data(PageKeys.TITLE, TITLE).data(PageKeys.BLOGS, blogs);
+		TemplateInstance template = homePage.data(WebKeys.TITLE, TITLE).data(WebKeys.BLOGS, blogs);
 
 		return Response.ok()
 				.entity(template)

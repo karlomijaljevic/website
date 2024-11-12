@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm.model;
+package xyz.mijaljevic.model.rss;
 
 import java.util.Objects;
 
@@ -14,7 +14,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @XmlRootElement(name = "rss")
 public final class Rss

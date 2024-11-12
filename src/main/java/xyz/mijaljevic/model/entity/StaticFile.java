@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm.model;
+package xyz.mijaljevic.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -22,7 +22,7 @@ import jakarta.persistence.SequenceGenerator;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @Entity(name = "static_file")
 public class StaticFile

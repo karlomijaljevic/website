@@ -38,6 +38,7 @@ quarkus:
     file:
       enable: true
       path: logs/website.log
+      format: "%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3.}] %s%e%n"
       rotation:
         max-file-size: 20M
         max-backup-index: 10

@@ -21,8 +21,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.orm.model.StaticFile;
-import xyz.mijaljevic.web.page.PageHelper;
+import xyz.mijaljevic.model.entity.StaticFile;
 
 /**
  * The static file server. Serves CSS files, image files and any other future
@@ -32,7 +31,7 @@ import xyz.mijaljevic.web.page.PageHelper;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @PermitAll
 @Path("/static")
@@ -98,9 +97,9 @@ public final class StaticFileServer
 		}
 
 		String etag = staticFile.getHash();
-		String lastModified = PageHelper.parseLastModifiedTime(staticFile.getModified());
+		String lastModified = WebHelper.parseLastModifiedTime(staticFile.getModified());
 
-		if (!PageHelper.hasResourceChanged(httpHeaders, etag, lastModified))
+		if (!WebHelper.hasResourceChanged(httpHeaders, etag, lastModified))
 		{
 			return Response.status(Status.NOT_MODIFIED).build();
 		}
@@ -155,9 +154,9 @@ public final class StaticFileServer
 		}
 
 		String etag = staticFile.getHash();
-		String lastModified = PageHelper.parseLastModifiedTime(staticFile.getModified());
+		String lastModified = WebHelper.parseLastModifiedTime(staticFile.getModified());
 
-		if (!PageHelper.hasResourceChanged(httpHeaders, etag, lastModified))
+		if (!WebHelper.hasResourceChanged(httpHeaders, etag, lastModified))
 		{
 			return Response.status(Status.NOT_MODIFIED).build();
 		}

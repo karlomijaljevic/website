@@ -1,16 +1,16 @@
-package xyz.mijaljevic.web.page;
+package xyz.mijaljevic.web;
 
 /**
- * Holds used page keys for the Qute templating engine. These often used keys
+ * Holds used web keys for the Qute templating engine. These often used keys
  * are for example the HTML head key <i>title</i>.
  * 
  * @author karlo
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
-public final class PageKeys
+public final class WebKeys
 {
 	/**
 	 * Key/name of the Qute parameter which holds the title of the page.

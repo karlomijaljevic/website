@@ -2,7 +2,6 @@ package xyz.mijaljevic.web.interceptor;
 
 import java.net.URI;
 
-import io.quarkus.logging.Log;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -15,7 +14,7 @@ import xyz.mijaljevic.web.page.ErrorPage;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @Provider
 public final class ExceptionInterceptor implements ExceptionMapper<Exception>
@@ -23,8 +22,6 @@ public final class ExceptionInterceptor implements ExceptionMapper<Exception>
 	@Override
 	public Response toResponse(Exception exception)
 	{
-		Log.error("A client has encountered and exception!", exception);
-
 		return Response.seeOther(URI.create("/error/exception")).build();
 	}
 }

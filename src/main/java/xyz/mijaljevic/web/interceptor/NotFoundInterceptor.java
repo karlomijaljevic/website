@@ -2,7 +2,6 @@ package xyz.mijaljevic.web.interceptor;
 
 import java.net.URI;
 
-import io.quarkus.logging.Log;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
@@ -16,7 +15,7 @@ import xyz.mijaljevic.web.page.ErrorPage;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @Provider
 public final class NotFoundInterceptor implements ExceptionMapper<NotFoundException>
@@ -24,8 +23,6 @@ public final class NotFoundInterceptor implements ExceptionMapper<NotFoundExcept
 	@Override
 	public Response toResponse(NotFoundException exception)
 	{
-		Log.warn("A client has encountered an '404 - Not Found' exception!");
-
 		return Response.seeOther(URI.create("/error/not-found")).build();
 	}
 }

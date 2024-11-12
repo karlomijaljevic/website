@@ -1,6 +1,7 @@
 package xyz.mijaljevic;
 
 import java.io.File;
+import java.nio.file.Path;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -8,9 +9,6 @@ import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
-import xyz.mijaljevic.orm.model.Rss;
 import xyz.mijaljevic.web.RssFeed;
 
 /**
@@ -20,10 +18,10 @@ import xyz.mijaljevic.web.RssFeed;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @ApplicationScoped
-public final class LifecycleHandler
+final class LifecycleHandler
 {
 	@ConfigProperty(name = "application.blogs-directory", defaultValue = "blogs")
 	private String blogsDirectoryPath;
@@ -60,27 +58,24 @@ public final class LifecycleHandler
 		}
 		Log.info("Successfully configured the css directory reference.");
 
-		Rss rss = readRssFeed(new File(rssFilePath));
-		if (rss == null)
+		if (!RssFeed.initializeRssFeed(rssFilePath))
 		{
 			ExitCodes.RSS_FILE_PARSING_FAILED.logAndExit();
 		}
-		rss.getChannel().setLastBuildDate(RssFeed.DEFAULT_LAST_BUILD_DATE);
-		RssFeed.updateRssFeed(rss);
 		Log.info("Successfully initialized the RSS feed root content.");
 	}
 
 	/**
-	 * Creates or retrieves the an {@link File} instance resolved by the provided
+	 * Creates or retrieves the {@link Path} instance resolved by the provided
 	 * {@link String} path or null in case of failure.
 	 * 
 	 * @param path The path to the directory which needs to be configured.
 	 * 
-	 * @return A {@link File} instance of the directory which is resolved by the
+	 * @return A {@link Path} instance of the directory which is resolved by the
 	 *         provided path. If null is returned than the method failed to create a
 	 *         directory.
 	 */
-	private static final File configureDirectory(String path)
+	private static final Path configureDirectory(String path)
 	{
 		File directory = new File(path);
 
@@ -96,30 +91,6 @@ public final class LifecycleHandler
 			Log.info("The '" + path + "' directory was created.");
 		}
 
-		return directory;
-	}
-
-	/**
-	 * Parses the provided file into a {@link Rss} instance. In case the provided
-	 * file was not a RSS XML the method returns null.
-	 * 
-	 * @param file A {@link File} to parse
-	 * 
-	 * @return Returns a {@link Rss} instance. In case the provided file was not a
-	 *         RSS XML the method returns null.
-	 */
-	private static final Rss readRssFeed(File file)
-	{
-		try
-		{
-			Unmarshaller jaxbUnmarshaller = RssFeed.RSS_JAXB_CONTEXT.createUnmarshaller();
-			return (Rss) jaxbUnmarshaller.unmarshal(file);
-		}
-		catch (JAXBException e)
-		{
-			Log.error("Failed to parse the RSS feed XML file!", e);
-
-			return null;
-		}
+		return directory.toPath();
 	}
 }

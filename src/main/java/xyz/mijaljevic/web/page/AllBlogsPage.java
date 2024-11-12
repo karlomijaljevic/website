@@ -18,7 +18,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.orm.model.BlogLink;
+import xyz.mijaljevic.model.dto.BlogLink;
+import xyz.mijaljevic.web.WebHelper;
+import xyz.mijaljevic.web.WebKeys;
 
 /**
  * All blogs page. Displays all of the blogs to the user.
@@ -27,7 +29,7 @@ import xyz.mijaljevic.orm.model.BlogLink;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @PermitAll
 @Path("/blogs")
@@ -52,10 +54,10 @@ public final class AllBlogsPage
 	@Produces(MediaType.TEXT_HTML)
 	public Response getPage()
 	{
-		String eTag = PageHelper.getETag();
-		String lastModified = PageHelper.getLastModified();
+		String eTag = WebHelper.getETag();
+		String lastModified = WebHelper.getLastModified();
 
-		if (!PageHelper.hasResourceChanged(httpHeaders, eTag, lastModified))
+		if (!WebHelper.hasResourceChanged(httpHeaders, eTag, lastModified))
 		{
 			return Response.status(Status.NOT_MODIFIED).build();
 		}
@@ -63,16 +65,10 @@ public final class AllBlogsPage
 		List<BlogLink> blogs = new ArrayList<BlogLink>();
 
 		Website.BLOG_CACHE.values().stream().sorted().forEach(blog -> {
-			BlogLink blogLink = new BlogLink();
-
-			blogLink.setId(blog.getId());
-			blogLink.setTitle(blog.getTitle());
-			blogLink.setDate(blog.parseCreated());
-
-			blogs.add(blogLink);
+			blogs.add(BlogLink.generateBlogLinkFromBlog(blog));
 		});
 
-		TemplateInstance template = allBlogsPage.data(PageKeys.BLOGS, blogs).data(PageKeys.TITLE, TITLE);
+		TemplateInstance template = allBlogsPage.data(WebKeys.BLOGS, blogs).data(WebKeys.TITLE, TITLE);
 
 		return Response.ok()
 				.entity(template)

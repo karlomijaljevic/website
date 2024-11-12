@@ -2,18 +2,14 @@ package xyz.mijaljevic.task;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.security.NoSuchAlgorithmException;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -26,28 +22,33 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import xyz.mijaljevic.ExitCodes;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.orm.BlogService;
-import xyz.mijaljevic.orm.model.Blog;
-import xyz.mijaljevic.orm.model.Item;
-import xyz.mijaljevic.orm.model.Rss;
+import xyz.mijaljevic.model.BlogService;
+import xyz.mijaljevic.model.entity.Blog;
+import xyz.mijaljevic.web.WebHelper;
 import xyz.mijaljevic.web.RssFeed;
-import xyz.mijaljevic.web.page.HomePage;
-import xyz.mijaljevic.web.page.PageHelper;
 
 /**
- * Class contains a scheduled method that runs every 5 minutes and checks the
+ * <p>
+ * Contains a scheduled method that runs every 5 minutes and checks the
  * {@link WatchKey} that was initialized during class creation. The key monitors
  * the creation/update/deletion of the blogs directory and
  * creates/updates/deletes entries in the DB accordingly.
+ * </p>
+ * <p>
+ * During initialization fills the RSS feed with the initial set of blogs and
+ * when a new blog is added it adds them to the RSS feed accordingly. It does
+ * both of these operations calling the {@link RssFeed} <i>updateRssFeed()</i>
+ * method.
+ * </p>
  * 
  * @author karlo
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @ApplicationScoped
-public final class WatchBlogsTask
+final class WatchBlogsTask
 {
 	@Inject
 	private BlogService blogService;
@@ -74,15 +75,15 @@ public final class WatchBlogsTask
 	private static final Pattern BLOG_FILE_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-]+\\.html$");
 
 	/**
-	 * URL used by the website, should stay mijaljevic.xyz as long as I live I hope.
-	 */
-	private static final String WEBSITE_URL = "https://mijaljevic.xyz/";
-
-	/**
+	 * <p>
 	 * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and performs
 	 * the initial blogs directory check up for new or updated files. It also
 	 * compares the database blogs against the files to check which DB blog has lost
 	 * its file if any and then removes the entity from the DB.
+	 * </p>
+	 * <p>
+	 * Furthermore it also initializes the RSS feed items aka the home page blogs.
+	 * </p>
 	 */
 	@PostConstruct
 	void initWatchBlogsTask()
@@ -98,11 +99,9 @@ public final class WatchBlogsTask
 			ExitCodes.WATCH_BLOGS_TASK_WATCH_SERVICE_FAILED.logAndExit();
 		}
 
-		Path directory = Website.BlogsDirectory.toPath();
-
 		try
 		{
-			WatchKey = directory.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+			WatchKey = Website.BlogsDirectory.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
 					StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
 
 			WatchKeyValid = WatchKey.isValid();
@@ -112,7 +111,7 @@ public final class WatchBlogsTask
 			ExitCodes.WATCH_BLOGS_TASK_WATCH_KEY_FAILED.logAndExit();
 		}
 
-		File[] files = Website.BlogsDirectory.listFiles();
+		File[] files = Website.BlogsDirectory.toFile().listFiles();
 		List<String> fileNames = new ArrayList<String>();
 
 		for (File file : files)
@@ -133,9 +132,9 @@ public final class WatchBlogsTask
 			blogService.deleteBlog(blog);
 		}
 
-		PageHelper.updateCacheControlHeaders();
+		WebHelper.updateCacheControlHeaders();
 
-		updateRssFeed();
+		RssFeed.updateRssFeed();
 	}
 
 	/**
@@ -173,7 +172,7 @@ public final class WatchBlogsTask
 
 			Path filename = ev.context();
 
-			File file = Website.BlogsDirectory.toPath().resolve(filename).toFile();
+			File file = Website.BlogsDirectory.resolve(filename).toFile();
 
 			if (!isFileHtml(file))
 			{
@@ -205,12 +204,12 @@ public final class WatchBlogsTask
 
 		if (changeOccurred)
 		{
-			PageHelper.updateCacheControlHeaders();
+			WebHelper.updateCacheControlHeaders();
 		}
 
 		if (blogCreated)
 		{
-			updateRssFeed();
+			RssFeed.updateRssFeed();
 		}
 
 		WatchKeyValid = WatchKey.reset();
@@ -255,7 +254,7 @@ public final class WatchBlogsTask
 		}
 		catch (NoSuchAlgorithmException | IOException e)
 		{
-			Log.error("Failed to hash file " + blog.getFileName() + " with algorithm " + TaskHelper.FILE_HASH_ALGO);
+			Log.error("Failed to hash file " + blog.getFileName() + " with algorithm " + Website.HASH_ALGORITHM);
 			return false;
 		}
 
@@ -279,56 +278,6 @@ public final class WatchBlogsTask
 		Website.BLOG_CACHE.put(blog.getFileName(), blog);
 
 		return true;
-	}
-
-	/**
-	 * Updates the items served by the RSS feed.
-	 */
-	private static final void updateRssFeed()
-	{
-		List<Item> items = new ArrayList<Item>();
-
-		Website.BLOG_CACHE.values().stream().sorted().limit(HomePage.NUMBER_OF_BLOGS_TO_DISPLAY).forEach(blog -> {
-			Item item = new Item();
-
-			String filePath = Website.BlogsDirectory.getPath() + File.separator + blog.getFileName();
-
-			try
-			{
-				item.setDescription(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));
-			}
-			catch (IOException e)
-			{
-				Log.error("Failed to read the '" + blog.getFileName() + "' blog contents for RSS!", e);
-
-				return;
-			}
-
-			item.setGuid(WEBSITE_URL + "blog/" + blog.getId());
-			item.setLink(WEBSITE_URL + "blog/" + blog.getId());
-			item.setTitle(blog.getTitle());
-
-			String pubDate = ZonedDateTime.from(blog.getCreated().atZone(ZoneId.systemDefault()))
-					.format(RssFeed.RSS_SPEC_FORMAT);
-			item.setPubDate(pubDate);
-
-			items.add(item);
-		});
-
-		Rss current = RssFeed.getRssFeed();
-
-		Blog lastUpdatedBlog = Website.BLOG_CACHE.values().stream().sorted().findFirst().orElse(null);
-
-		if (lastUpdatedBlog != null)
-		{
-			String pubDate = ZonedDateTime.from(lastUpdatedBlog.getCreated().atZone(ZoneId.systemDefault()))
-					.format(RssFeed.RSS_SPEC_FORMAT);
-			current.getChannel().setLastBuildDate(pubDate);
-		}
-
-		current.getChannel().setItems(items);
-
-		RssFeed.updateRssFeed(current);
 	}
 
 	/**

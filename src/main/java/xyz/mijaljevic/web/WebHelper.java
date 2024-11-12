@@ -1,67 +1,55 @@
-package xyz.mijaljevic.web.page;
+package xyz.mijaljevic.web;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.quarkus.logging.Log;
-import io.quarkus.runtime.Quarkus;
 import jakarta.ws.rs.core.HttpHeaders;
-import xyz.mijaljevic.task.WatchBlogsTask;
+import xyz.mijaljevic.ExitCodes;
+import xyz.mijaljevic.Website;
+import xyz.mijaljevic.web.page.HomePage;
 
 /**
  * Functional class containing helper methods and variables associated with the
- * page package.
+ * web package.
  * 
  * @author karlo
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
-public final class PageHelper
+public final class WebHelper
 {
-	private static final String HASH_ALGORITHM = "SHA-256";
-
 	/**
 	 * HTTP <i>Last-Modified</i> date format.
 	 */
 	private static final DateTimeFormatter LM_FORMAT = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss zzz");
 
 	/**
-	 * HTTP <i>Last-Modified</i> time zone.
-	 */
-	private static final String LM_ZONE = "UTC";
-
-	/**
 	 * HTTP <i>Last-Modified</i> header. Updated periodically when a blog gets
-	 * updated or created by the {@link WatchBlogsTask} class. Used by classes/pages
-	 * which need be updated when a new blog is added e.g. {@link HomePage}.
+	 * updated or created. Used by classes/pages which need be updated when a new
+	 * blog is added e.g. {@link HomePage}.
 	 */
 	private static AtomicReference<String> LastModified = new AtomicReference<String>(
-			PageHelper.parseLastModifiedTime(LocalDateTime.now()));
+			WebHelper.parseLastModifiedTime(LocalDateTime.now()));
 
 	/**
 	 * HTTP <i>ETag</i> header. Updated periodically when a blog gets updated or
-	 * created by the {@link WatchBlogsTask} class. Used by classes/pages which need
-	 * be updated when a new blog is added e.g. {@link HomePage}.
+	 * created. Used by classes/pages which need be updated when a new blog is added
+	 * e.g. {@link HomePage}.
 	 */
 	private static AtomicReference<String> ETag = new AtomicReference<String>(
-			PageHelper.generateEtagHash(Instant.now().toString()));
+			WebHelper.generateEtagHash(Instant.now().toString()));
 
 	/**
 	 * <p>
 	 * Generates an <i>ETag</i> hash from the provided string.
-	 * </p>
-	 * <p>
-	 * In case the method fails to find the currently specified hashing algorithm
-	 * the method will call the {@link Quarkus} <i>asyncExit()</i> method shutting
-	 * the application down.
 	 * </p>
 	 * 
 	 * @param string A {@link String} to turn into an ETag hash.
@@ -74,15 +62,13 @@ public final class PageHelper
 
 		try
 		{
-			digest = MessageDigest.getInstance(HASH_ALGORITHM);
+			digest = MessageDigest.getInstance(Website.HASH_ALGORITHM);
 		}
 		catch (NoSuchAlgorithmException e)
 		{
-			Log.error("Failed to find '" + HASH_ALGORITHM + "' during ETag hash creation! Shutting down!");
+			Log.fatal(e);
 
-			Log.error(e);
-
-			Quarkus.asyncExit(2);
+			ExitCodes.HASH_ALGORITHM_MISSING.logAndExit();
 		}
 
 		byte[] hash = digest.digest(string.getBytes(StandardCharsets.UTF_8));
@@ -114,7 +100,7 @@ public final class PageHelper
 	 */
 	public static final String parseLastModifiedTime(LocalDateTime lastModifiedTime)
 	{
-		return lastModifiedTime.atZone(ZoneId.of(LM_ZONE)).format(LM_FORMAT);
+		return lastModifiedTime.atZone(Website.TIME_ZONE).format(LM_FORMAT);
 	}
 
 	/**
@@ -161,8 +147,8 @@ public final class PageHelper
 	 */
 	public static final void updateCacheControlHeaders()
 	{
-		ETag.set(PageHelper.generateEtagHash(Instant.now().toString()));
-		LastModified.set(PageHelper.parseLastModifiedTime(LocalDateTime.now()));
+		ETag.set(WebHelper.generateEtagHash(Instant.now().toString()));
+		LastModified.set(WebHelper.parseLastModifiedTime(LocalDateTime.now()));
 	}
 
 	/**

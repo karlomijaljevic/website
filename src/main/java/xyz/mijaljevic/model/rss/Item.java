@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm.model;
+package xyz.mijaljevic.model.rss;
 
 import java.util.Objects;
 
@@ -12,7 +12,7 @@ import jakarta.xml.bind.annotation.XmlElement;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 public final class Item
 {

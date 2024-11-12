@@ -1,23 +1,43 @@
-package xyz.mijaljevic.orm.model;
+package xyz.mijaljevic.model.dto;
 
 import java.util.Objects;
 
+import xyz.mijaljevic.model.entity.Blog;
+
 /**
  * A {@link Blog} link model. Used by the website to display blog links which
- * usually showcase only the blog title, created date and ID. This is a simple
+ * usually show case only the blog title, created date and ID. This is a simple
  * POJO not an DB entity.
  * 
  * @author karlo
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 public final class BlogLink
 {
 	private Long id;
 	private String title;
 	private String date;
+
+	/**
+	 * Generates a blog link instance from a blog instance.
+	 * 
+	 * @param blog A {@link Blog} instance to create a blog link from.
+	 * 
+	 * @return A {@link BlogLink} instance from the blog.
+	 */
+	public final static BlogLink generateBlogLinkFromBlog(Blog blog)
+	{
+		BlogLink blogLink = new BlogLink();
+
+		blogLink.setId(blog.getId());
+		blogLink.setTitle(blog.getTitle());
+		blogLink.setDate(blog.parseCreated());
+
+		return blogLink;
+	}
 
 	public Long getId()
 	{

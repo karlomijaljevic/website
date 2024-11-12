@@ -11,7 +11,7 @@ import io.quarkus.runtime.Quarkus;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 public enum ExitCodes
 {
@@ -25,7 +25,8 @@ public enum ExitCodes
 	WATCH_CSS_TASK_WATCH_SERVICE_FAILED(8, "Failed to initialize a WatchService for the WatchCssTask!"),
 	WATCH_CSS_TASK_WATCH_KEY_FAILED(9, "Failed to initialize a WatchKey for the WatchCssTask!"),
 	RSS_JAXB_CONTEXT_INIT_FAILED(10, "Failed to initialize a JAXBContext for the Rss class!"),
-	RSS_FILE_PARSING_FAILED(11, "Failed to parse the RSS feed XML file!");
+	RSS_FILE_PARSING_FAILED(11, "Failed to parse the RSS feed XML file!"),
+	HASH_ALGORITHM_MISSING(12, "Hash algorithm requested by the website not found in the JRE!");
 
 	private int code;
 	private String description;

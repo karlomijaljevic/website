@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm;
+package xyz.mijaljevic.model;
 
 import java.util.List;
 
@@ -9,8 +9,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
-import xyz.mijaljevic.orm.model.StaticFile;
-import xyz.mijaljevic.orm.model.StaticFileType;
+import xyz.mijaljevic.model.entity.StaticFile;
+import xyz.mijaljevic.model.entity.StaticFileType;
 
 /**
  * Service class used for {@link StaticFile} entities.
@@ -19,7 +19,7 @@ import xyz.mijaljevic.orm.model.StaticFileType;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @ApplicationScoped
 public class StaticFileService

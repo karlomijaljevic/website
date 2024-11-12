@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm.model;
+package xyz.mijaljevic.model.entity;
 
 /**
  * Defines the static file types that the website serves. Currently it only
@@ -12,7 +12,7 @@ package xyz.mijaljevic.orm.model;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 public enum StaticFileType
 {

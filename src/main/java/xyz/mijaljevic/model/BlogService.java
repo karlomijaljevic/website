@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm;
+package xyz.mijaljevic.model;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
-import xyz.mijaljevic.orm.model.Blog;
+import xyz.mijaljevic.model.entity.Blog;
 
 /**
  * Service class used for {@link Blog} entities.
@@ -18,7 +18,7 @@ import xyz.mijaljevic.orm.model.Blog;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @ApplicationScoped
 public final class BlogService

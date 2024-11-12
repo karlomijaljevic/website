@@ -1,12 +1,14 @@
 package xyz.mijaljevic;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
-import xyz.mijaljevic.orm.model.Blog;
-import xyz.mijaljevic.orm.model.StaticFile;
+import xyz.mijaljevic.model.entity.Blog;
+import xyz.mijaljevic.model.entity.StaticFile;
 
 /**
  * Application class. Implements the {@link QuarkusApplication} interface.
@@ -16,7 +18,7 @@ import xyz.mijaljevic.orm.model.StaticFile;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 public final class Website implements QuarkusApplication
 {
@@ -36,36 +38,51 @@ public final class Website implements QuarkusApplication
 	public static final ConcurrentHashMap<String, StaticFile> STATIC_CACHE = new ConcurrentHashMap<String, StaticFile>();
 
 	/**
-	 * {@link File} instance which holds the reference to the blogs directory.
-	 * Configured during application startup by the {@link LifecycleHandler} class.
+	 * Limit of latest blogs to display on the Home page and RSS feed.
 	 */
-	public static File BlogsDirectory = null;
+	public static final int NUMBER_OF_BLOGS_TO_DISPLAY = 8;
 
 	/**
-	 * {@link File} instance which holds the reference to the images directory.
-	 * Configured during application startup by the {@link LifecycleHandler} class.
+	 * Time zone used by the website for clients.
 	 */
-	public static File ImagesDirectory = null;
+	public static final ZoneId TIME_ZONE = ZoneId.of("UTC");
 
 	/**
-	 * {@link File} instance which holds the reference to the css directory.
+	 * Hash algorithm used by the website for file and Etag hashing.
+	 */
+	public static final String HASH_ALGORITHM = "SHA-256";
+
+	/**
+	 * {@link Path} instance which holds the reference to the blogs directory.
 	 * Configured during application startup by the {@link LifecycleHandler} class.
 	 */
-	public static File CssDirectory = null;
+	public static Path BlogsDirectory = null;
+
+	/**
+	 * {@link Path} instance which holds the reference to the images directory.
+	 * Configured during application startup by the {@link LifecycleHandler} class.
+	 */
+	public static Path ImagesDirectory = null;
+
+	/**
+	 * {@link Path} instance which holds the reference to the css directory.
+	 * Configured during application startup by the {@link LifecycleHandler} class.
+	 */
+	public static Path CssDirectory = null;
 
 	@Override
 	public final int run(String... args) throws Exception
 	{
-		/**
-		 * TODO: Website improvements.
-		 * 
-		 * Code should be shuffled around classes to better reflect the relations
-		 * between them and to isolate as much functionality from e.g. tasks and pages
-		 * etc.
-		 */
-
 		Quarkus.waitForExit();
 
 		return 0;
+	}
+
+	/**
+	 * @return Most recent blogs (ordered by creation date) from the blogs cache.
+	 */
+	public static final List<Blog> retrieveRecentBlogs()
+	{
+		return BLOG_CACHE.values().stream().sorted().limit(NUMBER_OF_BLOGS_TO_DISPLAY).toList();
 	}
 }

@@ -18,6 +18,8 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import xyz.mijaljevic.web.WebHelper;
+import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Displays an error message to the user. Depending on the reason.
@@ -26,7 +28,7 @@ import jakarta.ws.rs.core.Response.Status;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @PermitAll
 @Path("/error/{reason}")
@@ -47,19 +49,19 @@ public final class ErrorPage
 	/**
 	 * HTTP <i>ETag</i> header.
 	 */
-	private static final String E_TAG = PageHelper.generateEtagHash(Instant.now().toString());
+	private static final String E_TAG = WebHelper.generateEtagHash(Instant.now().toString());
 
 	/**
 	 * HTTP <i>Last-Modified</i> header.
 	 */
-	private static final String LAST_MODIFIED = PageHelper.parseLastModifiedTime(LocalDateTime.now());
+	private static final String LAST_MODIFIED = WebHelper.parseLastModifiedTime(LocalDateTime.now());
 
 	@GET
 	@NonBlocking
 	@Produces(MediaType.TEXT_HTML)
 	public Response getPage()
 	{
-		if (!PageHelper.hasResourceChanged(httpHeaders, E_TAG, LAST_MODIFIED))
+		if (!WebHelper.hasResourceChanged(httpHeaders, E_TAG, LAST_MODIFIED))
 		{
 			return Response.status(Status.NOT_MODIFIED).build();
 		}
@@ -79,7 +81,7 @@ public final class ErrorPage
 			status = "418 I'm a teapot";
 		}
 
-		TemplateInstance template = errorPage.data(PageKeys.STATUS, status).data(PageKeys.TITLE, status);
+		TemplateInstance template = errorPage.data(WebKeys.STATUS, status).data(WebKeys.TITLE, status);
 
 		return Response.ok()
 				.entity(template)

@@ -1,4 +1,4 @@
-package xyz.mijaljevic.orm.model;
+package xyz.mijaljevic.model.entity;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -31,7 +31,7 @@ import jakarta.persistence.Transient;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @Entity(name = "blog")
 public class Blog implements Comparable<Blog>
@@ -90,6 +90,16 @@ public class Blog implements Comparable<Blog>
 	public String parseUpdated()
 	{
 		return updated == null ? "" : WEBSITE_DATE_PATTERN.format(updated);
+	}
+
+	public Long getId()
+	{
+		return id;
+	}
+
+	public void setId(Long id)
+	{
+		this.id = id;
 	}
 
 	public String getTitle()
@@ -160,16 +170,6 @@ public class Blog implements Comparable<Blog>
 	public void setData(String data)
 	{
 		this.data = data;
-	}
-
-	public Long getId()
-	{
-		return id;
-	}
-
-	public void setId(Long id)
-	{
-		this.id = id;
 	}
 
 	@Override

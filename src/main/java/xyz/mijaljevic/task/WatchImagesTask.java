@@ -19,9 +19,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import xyz.mijaljevic.ExitCodes;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.orm.StaticFileService;
-import xyz.mijaljevic.orm.model.StaticFile;
-import xyz.mijaljevic.orm.model.StaticFileType;
+import xyz.mijaljevic.model.StaticFileService;
+import xyz.mijaljevic.model.entity.StaticFile;
+import xyz.mijaljevic.model.entity.StaticFileType;
 
 /**
  * Class contains a scheduled method that runs every 5 minutes and checks the
@@ -33,10 +33,10 @@ import xyz.mijaljevic.orm.model.StaticFileType;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @ApplicationScoped
-public final class WatchImagesTask
+final class WatchImagesTask
 {
 	@Inject
 	private StaticFileService staticFileService;
@@ -71,11 +71,9 @@ public final class WatchImagesTask
 			ExitCodes.WATCH_IMAGES_TASK_WATCH_SERVICE_FAILED.logAndExit();
 		}
 
-		Path directory = Website.ImagesDirectory.toPath();
-
 		try
 		{
-			WatchKey = directory.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+			WatchKey = Website.ImagesDirectory.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
 					StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
 
 			WatchKeyValid = WatchKey.isValid();
@@ -85,7 +83,7 @@ public final class WatchImagesTask
 			ExitCodes.WATCH_IMAGES_TASK_WATCH_KEY_FAILED.logAndExit();
 		}
 
-		File[] files = Website.ImagesDirectory.listFiles();
+		File[] files = Website.ImagesDirectory.toFile().listFiles();
 		List<String> fileNames = new ArrayList<String>();
 
 		for (File file : files)
@@ -136,7 +134,7 @@ public final class WatchImagesTask
 
 			Path filename = ev.context();
 
-			File file = Website.ImagesDirectory.toPath().resolve(filename).toFile();
+			File file = Website.ImagesDirectory.resolve(filename).toFile();
 
 			if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY)
 			{
@@ -190,7 +188,7 @@ public final class WatchImagesTask
 		}
 		catch (NoSuchAlgorithmException | IOException e)
 		{
-			Log.error("Failed to hash file " + staticFile.getName() + " with algorithm " + TaskHelper.FILE_HASH_ALGO);
+			Log.error("Failed to hash file " + staticFile.getName() + " with algorithm " + Website.HASH_ALGORITHM);
 			return false;
 		}
 

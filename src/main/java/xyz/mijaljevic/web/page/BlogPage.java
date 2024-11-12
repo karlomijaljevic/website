@@ -25,7 +25,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.orm.model.Blog;
+import xyz.mijaljevic.model.entity.Blog;
+import xyz.mijaljevic.web.WebHelper;
+import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Displays a blog to the end user.
@@ -34,7 +36,7 @@ import xyz.mijaljevic.orm.model.Blog;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 @PermitAll
 @Path("/blog/{id}")
@@ -69,9 +71,9 @@ public final class BlogPage
 		LocalDateTime lastUpdated = blog.getUpdated() == null ? blog.getCreated() : blog.getUpdated();
 
 		String etag = blog.getHash();
-		String lastModified = PageHelper.parseLastModifiedTime(lastUpdated);
+		String lastModified = WebHelper.parseLastModifiedTime(lastUpdated);
 
-		if (!PageHelper.hasResourceChanged(httpHeaders, etag, lastModified))
+		if (!WebHelper.hasResourceChanged(httpHeaders, etag, lastModified))
 		{
 			Website.BLOG_CACHE.get(blog.getFileName()).setLastRead(LocalDateTime.now());
 
@@ -94,7 +96,7 @@ public final class BlogPage
 
 		Website.BLOG_CACHE.get(blog.getFileName()).setLastRead(LocalDateTime.now());
 
-		TemplateInstance template = blogPage.data(PageKeys.BLOG, blog).data(PageKeys.TITLE, blog.getTitle());
+		TemplateInstance template = blogPage.data(WebKeys.BLOG, blog).data(WebKeys.TITLE, blog.getTitle());
 
 		return Response.ok()
 				.entity(template)
@@ -124,7 +126,7 @@ public final class BlogPage
 			return synced;
 		}
 
-		String filePath = Website.BlogsDirectory.getPath() + File.separator + blog.getFileName();
+		String filePath = Website.BlogsDirectory.toString() + File.separator + blog.getFileName();
 
 		blog.setData(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));
 

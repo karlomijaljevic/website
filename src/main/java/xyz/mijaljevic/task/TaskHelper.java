@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import xyz.mijaljevic.Website;
+
 /**
  * Functional helper class for file related operations.
  * 
@@ -14,15 +16,10 @@ import java.security.NoSuchAlgorithmException;
  * 
  * @since 10.2024
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 final class TaskHelper
 {
-	/**
-	 * The algorithm used for file hashing.
-	 */
-	public static final String FILE_HASH_ALGO = "SHA-256";
-
 	/**
 	 * Creates a {@link String} hash from the provided file. Uses the algorithm
 	 * specified by the <i>FILE_HASH_ALGO</i> variable.
@@ -42,7 +39,7 @@ final class TaskHelper
 	{
 		byte[] data = Files.readAllBytes(file.toPath());
 
-		byte[] hash = MessageDigest.getInstance(FILE_HASH_ALGO).digest(data);
+		byte[] hash = MessageDigest.getInstance(Website.HASH_ALGORITHM).digest(data);
 
 		return new BigInteger(1, hash).toString(16);
 	}
