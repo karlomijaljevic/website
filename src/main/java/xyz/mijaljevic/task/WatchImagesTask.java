@@ -147,7 +147,7 @@ final class WatchImagesTask
 			{
 				StaticFile staticFile = staticFileService.findFileByName(file.getName());
 
-				if (staticFileService.deleteStaticFile(staticFile))
+				if (staticFile != null && staticFileService.deleteStaticFile(staticFile))
 				{
 					Website.STATIC_CACHE.remove(staticFile.getName());
 					Log.info("Successfully deleted image of file: " + file.getName());
