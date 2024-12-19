@@ -10,6 +10,7 @@ import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import xyz.mijaljevic.model.entity.Blog;
+import xyz.mijaljevic.model.entity.Topic;
 
 /**
  * Service class used for {@link Blog} entities.
@@ -70,6 +71,24 @@ public final class BlogService
 				Blog.class);
 
 		query.setParameter("fileNameList", fileNameList);
+
+		return query.getResultList();
+	}
+
+	/**
+	 * Lists all blogs that belong to the same topic.
+	 * 
+	 * @param topic A {@link Topic} entity
+	 * 
+	 * @return A {@link List} of {@link Blog} entities that belong to the provided
+	 *         topic.
+	 */
+	public List<Blog> listBlogsByTopic(Topic topic)
+	{
+		TypedQuery<Blog> query = em.createQuery("select B from blog B left join blog_topic BT where bt.topic = :topic",
+				Blog.class);
+
+		query.setParameter("topic", topic);
 
 		return query.getResultList();
 	}

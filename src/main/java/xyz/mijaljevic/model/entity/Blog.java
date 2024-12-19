@@ -2,12 +2,14 @@ package xyz.mijaljevic.model.entity;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.SequenceGenerator;
@@ -63,6 +65,9 @@ public class Blog implements Comparable<Blog>
 
 	@Transient
 	private String data;
+
+	@OneToMany(mappedBy = "blog")
+	private List<BlogTopic> blogTopics;
 
 	@PrePersist
 	void onCreate()
@@ -170,6 +175,16 @@ public class Blog implements Comparable<Blog>
 	public void setData(String data)
 	{
 		this.data = data;
+	}
+
+	public List<BlogTopic> getBlogTopics()
+	{
+		return blogTopics;
+	}
+
+	public void setBlogTopics(List<BlogTopic> blogTopics)
+	{
+		this.blogTopics = blogTopics;
 	}
 
 	@Override
