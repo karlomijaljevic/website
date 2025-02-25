@@ -9,12 +9,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 /**
  * Represents the <i>rss</i> top level (root) element in the RSS XML file that
  * the website serves for RSS readers.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @XmlRootElement(name = "rss")
 public final class Rss

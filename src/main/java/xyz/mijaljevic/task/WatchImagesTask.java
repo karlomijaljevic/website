@@ -28,12 +28,6 @@ import xyz.mijaljevic.model.entity.StaticFileType;
  * {@link WatchKey} that was initialized during class creation. The key monitors
  * the creation/update/deletion of the images directory and
  * creates/updates/deletes entries in the DB accordingly.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @ApplicationScoped
 final class WatchImagesTask

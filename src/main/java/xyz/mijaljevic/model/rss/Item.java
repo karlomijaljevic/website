@@ -7,12 +7,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 /**
  * Represents the <i>item</i> (composite) element in the RSS XML file that the
  * website serves for RSS readers.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 public final class Item
 {

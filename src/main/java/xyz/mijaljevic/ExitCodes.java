@@ -6,12 +6,6 @@ import io.quarkus.runtime.Quarkus;
 /**
  * Contains application exit codes and their descriptions. Also helper method
  * for <i>Quarkus.AsyncExit()</i> calls when the application needs to shut down.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 public enum ExitCodes
 {

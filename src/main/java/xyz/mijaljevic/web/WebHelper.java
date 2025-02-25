@@ -17,12 +17,6 @@ import xyz.mijaljevic.web.page.HomePage;
 /**
  * Functional class containing helper methods and variables associated with the
  * web package.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 public final class WebHelper
 {

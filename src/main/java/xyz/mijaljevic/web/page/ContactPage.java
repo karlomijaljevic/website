@@ -22,12 +22,6 @@ import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Displays my contacts to the user.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/contact")

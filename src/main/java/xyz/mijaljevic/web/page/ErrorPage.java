@@ -23,12 +23,6 @@ import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Displays an error message to the user. Depending on the reason.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/error/{reason}")

@@ -31,12 +31,6 @@ import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Displays a blog to the end user.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/blog/{id}")

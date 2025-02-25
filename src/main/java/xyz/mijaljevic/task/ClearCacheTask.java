@@ -18,12 +18,6 @@ import xyz.mijaljevic.model.entity.Blog;
  * Due note that it will not clear the data of the recent blogs, served by the
  * home page and the RSS feed.
  * </p>
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @ApplicationScoped
 final class ClearCacheTask

@@ -8,12 +8,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 /**
  * Represents the <i>atom:link</i> element in the RSS XML file that the website
  * serves for RSS readers.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @XmlRootElement(name = "link", namespace = "https://www.w3.org/2005/Atom")
 public final class AtomLink

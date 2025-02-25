@@ -8,12 +8,6 @@ import xyz.mijaljevic.model.entity.Blog;
  * A {@link Blog} link model. Used by the website to display blog links which
  * usually show case only the blog title, created date and ID. This is a simple
  * POJO not an DB entity.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 public final class BlogLink
 {

@@ -26,12 +26,6 @@ import xyz.mijaljevic.model.entity.StaticFile;
 /**
  * The static file server. Serves CSS files, image files and any other future
  * static files.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/static")

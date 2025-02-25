@@ -13,12 +13,6 @@ import xyz.mijaljevic.web.RssFeed;
 
 /**
  * Handles lifecycle events e.g. application startup.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @ApplicationScoped
 final class LifecycleHandler

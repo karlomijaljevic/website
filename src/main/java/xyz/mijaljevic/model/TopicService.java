@@ -12,12 +12,6 @@ import xyz.mijaljevic.model.entity.Topic;
 
 /**
  * Service class used for {@link Topic} entities.
- * 
- * @author karlo
- * 
- * @since 12.2024
- * 
- * @version 1.0
  */
 @ApplicationScoped
 public final class TopicService

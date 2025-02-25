@@ -17,12 +17,6 @@ import jakarta.persistence.SequenceGenerator;
  * A model that represents a static file (images, css, etc.). The
  * <i>modified</i> value is automatically created/updated during entity
  * persistence/update there is no need to set it manually.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @Entity(name = "static_file")
 public class StaticFile

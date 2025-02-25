@@ -40,12 +40,6 @@ import xyz.mijaljevic.web.RssFeed;
  * both of these operations calling the {@link RssFeed} <i>updateRssFeed()</i>
  * method.
  * </p>
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @ApplicationScoped
 final class WatchBlogsTask

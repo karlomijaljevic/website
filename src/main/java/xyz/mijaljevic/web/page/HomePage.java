@@ -24,12 +24,6 @@ import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Home page of the website.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @Path("/")
 @PermitAll

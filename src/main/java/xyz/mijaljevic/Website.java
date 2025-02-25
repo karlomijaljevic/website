@@ -13,12 +13,6 @@ import xyz.mijaljevic.model.entity.StaticFile;
 /**
  * Application class. Implements the {@link QuarkusApplication} interface.
  * Contains the application caches and "<i>global</i>" variables.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 public final class Website implements QuarkusApplication
 {

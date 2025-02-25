@@ -28,12 +28,6 @@ import jakarta.persistence.Transient;
  * <i>(does not follow the equals() method)</i>. This is done to simplify the
  * sorting of blog entities.
  * </p>
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @Entity(name = "blog")
 public class Blog implements Comparable<Blog>

@@ -10,27 +10,28 @@ import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import xyz.mijaljevic.model.entity.Blog;
+import xyz.mijaljevic.model.entity.BlogTopic;
 import xyz.mijaljevic.model.entity.Topic;
 
 /**
- * Service class used for {@link Blog} entities.
+ * Service class used for {@link BlogTopic} entities.
  */
 @ApplicationScoped
-public final class BlogService
+public class BlogTopicService
 {
 	@Inject
 	private EntityManager em;
 
 	@Transactional
-	public void createBlog(Blog blog)
+	public void createBlogTopic(BlogTopic blogTopic)
 	{
-		em.persist(blog);
+		em.persist(blogTopic);
 	}
 
 	@Transactional
-	public Blog updateBlog(Blog blog)
+	public BlogTopic updateBlogTopic(BlogTopic blogTopic)
 	{
-		return em.merge(blog);
+		return em.merge(blogTopic);
 	}
 
 	@Transactional

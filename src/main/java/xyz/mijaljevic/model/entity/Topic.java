@@ -12,12 +12,6 @@ import jakarta.persistence.SequenceGenerator;
 
 /**
  * A model that represents a topic.
- * 
- * @author karlo
- * 
- * @since 12.2024
- * 
- * @version 1.0
  */
 @Entity(name = "topic")
 public class Topic

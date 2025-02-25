@@ -11,12 +11,6 @@ import xyz.mijaljevic.Website;
 
 /**
  * Functional helper class for file related operations.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 final class TaskHelper
 {

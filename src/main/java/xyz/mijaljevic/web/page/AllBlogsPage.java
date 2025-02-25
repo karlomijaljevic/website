@@ -24,12 +24,6 @@ import xyz.mijaljevic.web.WebKeys;
 
 /**
  * All blogs page. Displays all of the blogs to the user.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/blogs")

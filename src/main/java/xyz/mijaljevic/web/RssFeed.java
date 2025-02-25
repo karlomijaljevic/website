@@ -38,12 +38,6 @@ import xyz.mijaljevic.model.rss.Rss;
 
 /**
  * Serves the RSS feed.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/rss")

@@ -14,12 +14,6 @@ import xyz.mijaljevic.model.entity.StaticFileType;
 
 /**
  * Service class used for {@link StaticFile} entities.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @ApplicationScoped
 public class StaticFileService
