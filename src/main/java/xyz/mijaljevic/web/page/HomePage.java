@@ -27,48 +27,43 @@ import xyz.mijaljevic.web.WebKeys;
  */
 @Path("/")
 @PermitAll
-public final class HomePage
-{
-	@ConfigProperty(name = "application.cache-control")
-	private String cacheControl;
+public final class HomePage {
+    @ConfigProperty(name = "application.cache-control")
+    String cacheControl;
 
-	@Inject
-	private HttpHeaders httpHeaders;
+    @Inject
+    HttpHeaders httpHeaders;
 
-	@Inject
-	private Template homePage;
+    @Inject
+    Template homePage;
 
-	/**
-	 * HTML title of the home page.
-	 */
-	private static final String TITLE = "Karlo Mijaljević";
+    /**
+     * HTML title of the home page.
+     */
+    private static final String TITLE = "Karlo Mijaljević";
 
-	@GET
-	@NonBlocking
-	@Produces(MediaType.TEXT_HTML)
-	public Response getPage()
-	{
-		String eTag = WebHelper.getETag();
-		String lastModified = WebHelper.getLastModified();
+    @GET
+    @NonBlocking
+    @Produces(MediaType.TEXT_HTML)
+    public Response getPage() {
+        String eTag = WebHelper.getETag();
+        String lastModified = WebHelper.getLastModified();
 
-		if (!WebHelper.hasResourceChanged(httpHeaders, eTag, lastModified))
-		{
-			return Response.status(Status.NOT_MODIFIED).build();
-		}
+        if (WebHelper.isResourceNotChanged(httpHeaders, eTag, lastModified)) {
+            return Response.status(Status.NOT_MODIFIED).build();
+        }
 
-		List<BlogLink> blogs = new ArrayList<BlogLink>();
+        List<BlogLink> blogs = new ArrayList<>();
 
-		Website.retrieveRecentBlogs().forEach(blog -> {
-			blogs.add(BlogLink.generateBlogLinkFromBlog(blog));
-		});
+        Website.retrieveRecentBlogs().forEach(blog -> blogs.add(BlogLink.generateBlogLinkFromBlog(blog)));
 
-		TemplateInstance template = homePage.data(WebKeys.TITLE, TITLE).data(WebKeys.BLOGS, blogs);
+        TemplateInstance template = homePage.data(WebKeys.TITLE, TITLE).data(WebKeys.BLOGS, blogs);
 
-		return Response.ok()
-				.entity(template)
-				.header(HttpHeaders.ETAG, eTag)
-				.header(HttpHeaders.CACHE_CONTROL, cacheControl)
-				.header(HttpHeaders.LAST_MODIFIED, lastModified)
-				.build();
-	}
+        return Response.ok()
+                .entity(template)
+                .header(HttpHeaders.ETAG, eTag)
+                .header(HttpHeaders.CACHE_CONTROL, cacheControl)
+                .header(HttpHeaders.LAST_MODIFIED, lastModified)
+                .build();
+    }
 }

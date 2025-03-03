@@ -25,49 +25,46 @@ import xyz.mijaljevic.web.WebKeys;
  */
 @PermitAll
 @Path("/contact")
-public final class ContactPage
-{
-	@ConfigProperty(name = "application.cache-control")
-	private String cacheControl;
+public final class ContactPage {
+    @ConfigProperty(name = "application.cache-control")
+    String cacheControl;
 
-	@Inject
-	private HttpHeaders httpHeaders;
+    @Inject
+    HttpHeaders httpHeaders;
 
-	@Inject
-	private Template contactPage;
+    @Inject
+    Template contactPage;
 
-	/**
-	 * HTML title of the contact page.
-	 */
-	private static final String TITLE = "Contact";
+    /**
+     * HTML title of the contact page.
+     */
+    private static final String TITLE = "Contact";
 
-	/**
-	 * HTTP <i>ETag</i> header.
-	 */
-	private static final String E_TAG = WebHelper.generateEtagHash(Instant.now().toString());
+    /**
+     * HTTP <i>ETag</i> header.
+     */
+    private static final String E_TAG = WebHelper.generateEtagHash(Instant.now().toString());
 
-	/**
-	 * HTTP <i>Last-Modified</i> header.
-	 */
-	private static final String LAST_MODIFIED = WebHelper.parseLastModifiedTime(LocalDateTime.now());
+    /**
+     * HTTP <i>Last-Modified</i> header.
+     */
+    private static final String LAST_MODIFIED = WebHelper.parseLastModifiedTime(LocalDateTime.now());
 
-	@GET
-	@NonBlocking
-	@Produces(MediaType.TEXT_HTML)
-	public Response getPage()
-	{
-		if (!WebHelper.hasResourceChanged(httpHeaders, E_TAG, LAST_MODIFIED))
-		{
-			return Response.status(Status.NOT_MODIFIED).build();
-		}
+    @GET
+    @NonBlocking
+    @Produces(MediaType.TEXT_HTML)
+    public Response getPage() {
+        if (WebHelper.isResourceNotChanged(httpHeaders, E_TAG, LAST_MODIFIED)) {
+            return Response.status(Status.NOT_MODIFIED).build();
+        }
 
-		TemplateInstance template = contactPage.data(WebKeys.TITLE, TITLE);
+        TemplateInstance template = contactPage.data(WebKeys.TITLE, TITLE);
 
-		return Response.ok()
-				.entity(template)
-				.header(HttpHeaders.ETAG, E_TAG)
-				.header(HttpHeaders.CACHE_CONTROL, cacheControl)
-				.header(HttpHeaders.LAST_MODIFIED, LAST_MODIFIED)
-				.build();
-	}
+        return Response.ok()
+                .entity(template)
+                .header(HttpHeaders.ETAG, E_TAG)
+                .header(HttpHeaders.CACHE_CONTROL, cacheControl)
+                .header(HttpHeaders.LAST_MODIFIED, LAST_MODIFIED)
+                .build();
+    }
 }

@@ -6,6 +6,9 @@ target/
 .classpath
 .settings/
 
+# Idea
+.idea/
+
 # Project
 logs/
 blogs/

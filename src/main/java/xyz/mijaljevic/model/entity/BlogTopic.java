@@ -35,6 +35,18 @@ public class BlogTopic
 	@ManyToOne
 	@JoinColumn(name = "topic_id", referencedColumnName = "id", nullable = false, unique = false, updatable = true)
 	private Topic topic;
+	
+	public BlogTopic()
+	{
+		setBlog(null);
+		setTopic(null);
+	}
+	
+	public BlogTopic(Blog blog, Topic topic)
+	{
+		setBlog(blog);
+		setTopic(topic);
+	}
 
 	public Long getId()
 	{

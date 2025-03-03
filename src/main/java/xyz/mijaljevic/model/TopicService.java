@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
@@ -14,37 +15,44 @@ import xyz.mijaljevic.model.entity.Topic;
  * Service class used for {@link Topic} entities.
  */
 @ApplicationScoped
-public final class TopicService
-{
-	@Inject
-	private EntityManager em;
+public final class TopicService {
+    @Inject
+    EntityManager em;
 
-	@Transactional
-	public void createTopic(Topic topic)
-	{
-		em.persist(topic);
-	}
+    public Topic findTopicByName(String name) {
+        TypedQuery<Topic> query = em.createQuery("select T from topic T where T.name = :name", Topic.class);
 
-	@Transactional
-	public Topic updateTopic(Topic topic)
-	{
-		return em.merge(topic);
-	}
+        query.setParameter("name", name);
 
-	@Transactional
-	public boolean deleteTopic(Topic topic)
-	{
-		Query query = em.createQuery("delete from topic where id = :id");
+        try {
+            return query.getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
 
-		query.setParameter("id", topic.getId());
+    @Transactional
+    public void createTopic(Topic topic) {
+        em.persist(topic);
+    }
 
-		return query.executeUpdate() == 1;
-	}
+    @Transactional
+    public Topic updateTopic(Topic topic) {
+        return em.merge(topic);
+    }
 
-	public List<Topic> listAllTopics()
-	{
-		TypedQuery<Topic> query = em.createQuery("select T from topic T", Topic.class);
+    @Transactional
+    public boolean deleteTopic(Topic topic) {
+        Query query = em.createQuery("delete from topic where id = :id");
 
-		return query.getResultList();
-	}
+        query.setParameter("id", topic.getId());
+
+        return query.executeUpdate() == 1;
+    }
+
+    public List<Topic> listAllTopics() {
+        TypedQuery<Topic> query = em.createQuery("select T from topic T", Topic.class);
+
+        return query.getResultList();
+    }
 }

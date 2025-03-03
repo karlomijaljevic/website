@@ -14,68 +14,58 @@ import jakarta.persistence.SequenceGenerator;
  * A model that represents a topic.
  */
 @Entity(name = "topic")
-public class Topic
-{
-	@Id
-	@SequenceGenerator(name = "topicSeq", sequenceName = "topic_seq", allocationSize = 1, initialValue = 1)
-	@GeneratedValue(generator = "topicSeq")
-	private Long id;
+public class Topic {
+    @Id
+    @SequenceGenerator(name = "topicSeq", sequenceName = "topic_seq", allocationSize = 1)
+    @GeneratedValue(generator = "topicSeq")
+    private Long id;
 
-	@Column(name = "name", nullable = false, unique = true, updatable = false)
-	private String name;
+    @Column(name = "name", nullable = false, unique = true, updatable = false)
+    private String name;
 
-	@OneToMany(mappedBy = "topic")
-	private List<BlogTopic> blogTopics;
+    @OneToMany(mappedBy = "topic")
+    private List<BlogTopic> blogTopics;
 
-	public Long getId()
-	{
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setId(Long id)
-	{
-		this.id = id;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public String getName()
-	{
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setName(String name)
-	{
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public List<BlogTopic> getBlogTopics()
-	{
-		return blogTopics;
-	}
+    public List<BlogTopic> getBlogTopics() {
+        return blogTopics;
+    }
 
-	public void setBlogTopics(List<BlogTopic> blogTopics)
-	{
-		this.blogTopics = blogTopics;
-	}
+    public void setBlogTopics(List<BlogTopic> blogTopics) {
+        this.blogTopics = blogTopics;
+    }
 
-	@Override
-	public String toString()
-	{
-		return "Topic [id=" + id + ", name=" + name + "]";
-	}
+    @Override
+    public String toString() {
+        return "Topic [id=" + id + ", name=" + name + "]";
+    }
 
-	@Override
-	public int hashCode()
-	{
-		return Objects.hash(id, name);
-	}
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name);
+    }
 
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (this == obj) return true;
-		if (obj == null) return false;
-		if (getClass() != obj.getClass()) return false;
-		Topic other = (Topic) obj;
-		return Objects.equals(id, other.id) && Objects.equals(name, other.name);
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        Topic other = (Topic) obj;
+        return Objects.equals(id, other.id) && Objects.equals(name, other.name);
+    }
 }
