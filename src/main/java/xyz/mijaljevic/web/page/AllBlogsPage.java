@@ -1,10 +1,5 @@
 package xyz.mijaljevic.web.page;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import io.smallrye.common.annotation.NonBlocking;
@@ -17,10 +12,14 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.model.dto.BlogLink;
 import xyz.mijaljevic.web.WebHelper;
 import xyz.mijaljevic.web.WebKeys;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * All blogs page. Displays all the blogs to the user.

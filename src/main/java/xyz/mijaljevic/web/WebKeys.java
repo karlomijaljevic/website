@@ -11,20 +11,25 @@ public final class WebKeys {
     public static final String TITLE = "title";
 
     /**
-     * Key/name of the Qute parameter which usually holds the displayed blogs or
-     * blog links list.
+     * Key/name of the Qute parameter which usually holds the displayed blogs
+     * or blog links list.
      */
     public static final String BLOGS = "blogs";
 
     /**
-     * Key/name of the Qute parameter which usually holds a singular blog or blog
-     * link.
+     * Key/name of the Qute parameter which usually holds a singular blog or
+     * blog link.
      */
     public static final String BLOG = "blog";
 
     /**
-     * Key/name of the Qute parameter which usually holds a response status that
-     * needs to be displayed.
+     * Key/name of the Qute parameter which usually holds a blog topic.
+     */
+    public static final String TOPIC = "topic";
+
+    /**
+     * Key/name of the Qute parameter which usually holds a response status
+     * that needs to be displayed.
      */
     public static final String STATUS = "status";
 }

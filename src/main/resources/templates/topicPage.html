@@ -1,4 +1,5 @@
 {@java.lang.String title}
+{@java.lang.String topic}
 {@java.util.List<xyz.mijaljevic.model.dto.BlogLink> blogs}
 <!doctype html>
 <!--Hello there page inspector. In case you find any errors/issues-->
@@ -8,12 +9,16 @@
 	{#include core/head /}
 	<body>
 		{#include core/header /}
-		<h1 class="page-title">Blog</h1>
-		{#for blog in blogs}
-		<div class="latest-blogs-section">
-			<a href="/blog/{blog.id}">{blog.title}</a>
-			<span>{blog.date}</span>
-		</div>
-		{/for}
+	<h1 class="page-title">Blogs in the <i>{topic}</i> topic</h1>
+		{#if blogs.size() == 0}
+			<p class="no-blogs">There are no blogs in this topic yet.</p>
+		{#else}
+			{#for blog in blogs}
+			<div class="latest-blogs-section">
+				<a href="/blog/{blog.id}">{blog.title}</a>
+				<span>{blog.date}</span>
+			</div>
+			{/for}
+		{/if}
 	</body>
 </html>

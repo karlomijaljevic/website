@@ -129,7 +129,7 @@ public final class RssFeed {
         Website.retrieveRecentBlogs().forEach(blog -> {
             Item item = new Item();
 
-            String filePath = Website.BlogsDirectory.toString() + File.separator + blog.getFileName();
+            String filePath = Website.getBlogsDirectory().toString() + File.separator + blog.getFileName();
 
             try {
                 item.setDescription(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));

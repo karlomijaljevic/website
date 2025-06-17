@@ -1,12 +1,12 @@
 package xyz.mijaljevic.web.interceptor;
 
-import java.net.URI;
-
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import xyz.mijaljevic.web.page.ErrorPage;
+
+import java.net.URI;
 
 /**
  * Intercepts <i><b>404 NOT FOUND</b></i> exceptions that occur on the website

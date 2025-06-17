@@ -58,9 +58,9 @@ final class LifecycleHandler {
      * {@link String} path or null in case of failure.
      *
      * @param path The path to the directory which needs to be configured.
-     * @return A {@link Path} instance of the directory which is resolved by the
-     * provided path. If null is returned than the method failed to create a
-     * directory.
+     * @return A {@link Path} instance of the directory which is resolved by
+     * the provided path. If null is returned than the method failed to create
+     * a directory.
      */
     private static Path configureDirectory(String path) {
         File directory = new File(path);

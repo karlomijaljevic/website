@@ -106,7 +106,7 @@ public final class BlogPage {
             return synced;
         }
 
-        String filePath = Website.BlogsDirectory.toString() + File.separator + blog.getFileName();
+        String filePath = Website.getBlogsDirectory().toString() + File.separator + blog.getFileName();
 
         blog.setData(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));
 
