@@ -1,11 +1,11 @@
 package xyz.mijaljevic.model.entity;
 
+import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
-
-import jakarta.persistence.*;
 
 /**
  * <p>
@@ -153,11 +153,11 @@ public class Blog implements Comparable<Blog> {
     @Override
     public int compareTo(Blog other) {
         if (created.isBefore(other.created)) {
-            return -1;
+            return 1;
         } else if (created.isEqual(other.created)) {
             return 0;
         } else {
-            return 1;
+            return -1;
         }
     }
 

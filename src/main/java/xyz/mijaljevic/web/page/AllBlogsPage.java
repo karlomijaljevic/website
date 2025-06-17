@@ -18,7 +18,6 @@ import xyz.mijaljevic.model.dto.BlogLink;
 import xyz.mijaljevic.web.WebHelper;
 import xyz.mijaljevic.web.WebKeys;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,11 +51,14 @@ public final class AllBlogsPage {
             return Response.status(Status.NOT_MODIFIED).build();
         }
 
-        List<BlogLink> blogs = new ArrayList<>();
+        List<BlogLink> blogs = Website.BLOG_CACHE.values()
+                .stream()
+                .sorted()
+                .map(BlogLink::generateBlogLinkFromBlog)
+                .toList();
 
-        Website.BLOG_CACHE.values().stream().sorted().forEach(blog -> blogs.add(BlogLink.generateBlogLinkFromBlog(blog)));
-
-        TemplateInstance template = allBlogsPage.data(WebKeys.BLOGS, blogs).data(WebKeys.TITLE, TITLE);
+        TemplateInstance template = allBlogsPage.data(WebKeys.BLOGS, blogs)
+                .data(WebKeys.TITLE, TITLE);
 
         return Response.ok()
                 .entity(template)

@@ -80,8 +80,7 @@ public final class Website implements QuarkusApplication {
                 .stream()
                 .sorted()
                 .limit(NUMBER_OF_BLOGS_TO_DISPLAY)
-                .toList()
-                .reversed();
+                .toList();
     }
 
     /**
