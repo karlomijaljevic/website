@@ -5,15 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Transient;
+import jakarta.persistence.*;
 
 /**
  * <p>
@@ -59,7 +51,7 @@ public class Blog implements Comparable<Blog> {
     @Transient
     private String data;
 
-    @OneToMany(mappedBy = "blog")
+    @OneToMany(mappedBy = "blog", fetch = FetchType.EAGER)
     private List<BlogTopic> blogTopics;
 
     @PrePersist

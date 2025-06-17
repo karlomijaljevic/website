@@ -91,9 +91,6 @@ public final class StaticFileServer {
     @Path("/image/{name}")
     @Produces(value = {"image/png", "image/jpeg", "image/gif", "image/x-icon", "application/json"})
     public Response getImage(@PathParam(value = "name") String name) {
-        // TODO: Image endpoint feature - Maybe add a nginx like path parameter which allows for fetching images witch a
-        //  specific width and height ratio.
-
         if (name.isBlank() || name.contains(File.separator) || name.length() > MAX_IMAGE_NAME_LENGTH) {
             return returnBadRequest("The requested image name is NOT valid! Provided name: " + name);
         }

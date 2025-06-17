@@ -1,12 +1,9 @@
 package xyz.mijaljevic.model;
 
-import java.util.List;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import xyz.mijaljevic.model.entity.Topic;
@@ -16,13 +13,23 @@ import xyz.mijaljevic.model.entity.Topic;
  */
 @ApplicationScoped
 public final class TopicService {
+    /**
+     * The entity manager used to interact with the database.
+     */
     @Inject
     EntityManager em;
 
+    /**
+     * Finds a topic by its name.
+     *
+     * @param name the name of the topic to find
+     * @return the found topic, or null if no topic with that name exists
+     */
     public Topic findTopicByName(String name) {
-        TypedQuery<Topic> query = em.createQuery("select T from topic T where T.name = :name", Topic.class);
-
-        query.setParameter("name", name);
+        TypedQuery<Topic> query = em.createQuery(
+                "select T from topic T where T.name = :name",
+                Topic.class
+        ).setParameter("name", name);
 
         try {
             return query.getSingleResult();
@@ -31,28 +38,26 @@ public final class TopicService {
         }
     }
 
+    /**
+     * Creates a new topic.
+     *
+     * @param topic the topic to create
+     * @return the created topic, or null if it failed
+     */
     @Transactional
-    public void createTopic(Topic topic) {
+    public Topic createTopic(Topic topic) {
         em.persist(topic);
+        return findTopicByName(topic.getName());
     }
 
+    /**
+     * Updates an existing topic.
+     *
+     * @param topic the topic to update
+     * @return the updated topic
+     */
     @Transactional
     public Topic updateTopic(Topic topic) {
         return em.merge(topic);
-    }
-
-    @Transactional
-    public boolean deleteTopic(Topic topic) {
-        Query query = em.createQuery("delete from topic where id = :id");
-
-        query.setParameter("id", topic.getId());
-
-        return query.executeUpdate() == 1;
-    }
-
-    public List<Topic> listAllTopics() {
-        TypedQuery<Topic> query = em.createQuery("select T from topic T", Topic.class);
-
-        return query.getResultList();
     }
 }

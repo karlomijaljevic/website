@@ -5,7 +5,8 @@ import io.quarkus.runtime.Quarkus;
 
 /**
  * Contains application exit codes and their descriptions. Also, helper method
- * for <i>Quarkus.AsyncExit()</i> calls when the application needs to shut down.
+ * for <i>Quarkus.AsyncExit()</i> calls when the application needs to shut
+ * down.
  */
 public enum ExitCodes {
     BLOGS_DIRECTORY_SETUP_FAILED(1, "Failed to create and configure a blogs directory!"),
@@ -30,8 +31,8 @@ public enum ExitCodes {
     }
 
     /**
-     * Logs the exit code description as an <i><b>FATAL</b></i> error and exits the
-     * application asynchronously using <i>Quarkus.AsyncExit()</i>.
+     * Logs the exit code description as an <i><b>FATAL</b></i> error and exits
+     * the application asynchronously using <i>Quarkus.AsyncExit()</i>.
      */
     public final void logAndExit() {
         Log.fatal(description);

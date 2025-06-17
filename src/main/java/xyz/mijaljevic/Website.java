@@ -1,14 +1,14 @@
 package xyz.mijaljevic;
 
-import java.nio.file.Path;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import xyz.mijaljevic.model.entity.Blog;
 import xyz.mijaljevic.model.entity.StaticFile;
+
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Application class. Implements the {@link QuarkusApplication} interface.
@@ -49,19 +49,20 @@ public final class Website implements QuarkusApplication {
      * {@link Path} instance which holds the reference to the blog directory.
      * Configured during application startup by the {@link LifecycleHandler} class.
      */
-    public static Path BlogsDirectory = null;
+    static Path BlogsDirectory = null;
 
     /**
      * {@link Path} instance which holds the reference to the image directory.
      * Configured during application startup by the {@link LifecycleHandler} class.
      */
-    public static Path ImagesDirectory = null;
+    static Path ImagesDirectory = null;
 
     /**
      * {@link Path} instance which holds the reference to the css directory.
-     * Configured during application startup by the {@link LifecycleHandler} class.
+     * Configured during application startup by the {@link LifecycleHandler}
+     * class.
      */
-    public static Path CssDirectory = null;
+    static Path CssDirectory = null;
 
     @Override
     public int run(String... args) {
@@ -71,9 +72,48 @@ public final class Website implements QuarkusApplication {
     }
 
     /**
-     * @return Most recent blogs (ordered by creation date) from the blogs cache.
+     * @return Most recent blogs (ordered by creation date from newest to
+     * oldest) from the blogs cache.
      */
     public static List<Blog> retrieveRecentBlogs() {
-        return BLOG_CACHE.values().stream().sorted().limit(NUMBER_OF_BLOGS_TO_DISPLAY).toList();
+        return BLOG_CACHE.values()
+                .stream()
+                .sorted()
+                .limit(NUMBER_OF_BLOGS_TO_DISPLAY)
+                .toList()
+                .reversed();
+    }
+
+    /**
+     * @return The path to the blogs' directory.
+     * @throws IllegalStateException if the blogs directory is not set.
+     */
+    public static Path getBlogsDirectory() {
+        if (BlogsDirectory == null) {
+            throw new IllegalStateException("Blogs directory is not set. Please check the application configuration.");
+        }
+        return BlogsDirectory;
+    }
+
+    /**
+     * @return The path to the images' directory.
+     * @throws IllegalStateException if the images directory is not set.
+     */
+    public static Path getImagesDirectory() {
+        if (ImagesDirectory == null) {
+            throw new IllegalStateException("Images directory is not set. Please check the application configuration.");
+        }
+        return ImagesDirectory;
+    }
+
+    /**
+     * @return The path to the css directory.
+     * @throws IllegalStateException if the css directory is not set.
+     */
+    public static Path getCssDirectory() {
+        if (CssDirectory == null) {
+            throw new IllegalStateException("CSS directory is not set. Please check the application configuration.");
+        }
+        return CssDirectory;
     }
 }

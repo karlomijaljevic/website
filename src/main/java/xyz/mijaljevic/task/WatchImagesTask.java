@@ -65,7 +65,7 @@ final class WatchImagesTask {
         }
 
         try {
-            WatchKey = Website.ImagesDirectory.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+            WatchKey = Website.getImagesDirectory().register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
 
             WatchKeyValid = WatchKey.isValid();
@@ -73,7 +73,7 @@ final class WatchImagesTask {
             ExitCodes.WATCH_IMAGES_TASK_WATCH_KEY_FAILED.logAndExit();
         }
 
-        File[] files = Website.ImagesDirectory.toFile().listFiles();
+        File[] files = Website.getImagesDirectory().toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
@@ -123,7 +123,7 @@ final class WatchImagesTask {
 
             Path filename = ev.context();
 
-            File file = Website.ImagesDirectory.resolve(filename).toFile();
+            File file = Website.getImagesDirectory().resolve(filename).toFile();
 
             if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                 if (consumeImageFile(file)) {

@@ -65,7 +65,7 @@ final class WatchCssTask {
         }
 
         try {
-            WatchKey = Website.CssDirectory.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+            WatchKey = Website.getCssDirectory().register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
 
             WatchKeyValid = WatchKey.isValid();
@@ -73,7 +73,7 @@ final class WatchCssTask {
             ExitCodes.WATCH_CSS_TASK_WATCH_KEY_FAILED.logAndExit();
         }
 
-        File[] files = Website.CssDirectory.toFile().listFiles();
+        File[] files = Website.getCssDirectory().toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
@@ -123,7 +123,7 @@ final class WatchCssTask {
 
             Path filename = ev.context();
 
-            File file = Website.CssDirectory.resolve(filename).toFile();
+            File file = Website.getCssDirectory().resolve(filename).toFile();
 
             if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                 if (consumeCssFile(file)) {
