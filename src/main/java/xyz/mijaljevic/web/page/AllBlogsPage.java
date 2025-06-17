@@ -23,58 +23,47 @@ import xyz.mijaljevic.web.WebHelper;
 import xyz.mijaljevic.web.WebKeys;
 
 /**
- * All blogs page. Displays all of the blogs to the user.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
+ * All blogs page. Displays all the blogs to the user.
  */
 @PermitAll
 @Path("/blogs")
-public final class AllBlogsPage
-{
-	@ConfigProperty(name = "application.cache-control")
-	private String cacheControl;
+public final class AllBlogsPage {
+    @ConfigProperty(name = "application.cache-control")
+    String cacheControl;
 
-	@Inject
-	private HttpHeaders httpHeaders;
+    @Inject
+    HttpHeaders httpHeaders;
 
-	@Inject
-	private Template allBlogsPage;
+    @Inject
+    Template allBlogsPage;
 
-	/**
-	 * Title of the all blogs page.
-	 */
-	private static final String TITLE = "Blog";
+    /**
+     * Title of the all blogs page.
+     */
+    private static final String TITLE = "Blog";
 
-	@GET
-	@NonBlocking
-	@Produces(MediaType.TEXT_HTML)
-	public Response getPage()
-	{
-		String eTag = WebHelper.getETag();
-		String lastModified = WebHelper.getLastModified();
+    @GET
+    @NonBlocking
+    @Produces(MediaType.TEXT_HTML)
+    public Response getPage() {
+        String eTag = WebHelper.getETag();
+        String lastModified = WebHelper.getLastModified();
 
-		if (!WebHelper.hasResourceChanged(httpHeaders, eTag, lastModified))
-		{
-			return Response.status(Status.NOT_MODIFIED).build();
-		}
+        if (WebHelper.isResourceNotChanged(httpHeaders, eTag, lastModified)) {
+            return Response.status(Status.NOT_MODIFIED).build();
+        }
 
-		List<BlogLink> blogs = new ArrayList<BlogLink>();
+        List<BlogLink> blogs = new ArrayList<>();
 
-		Website.BLOG_CACHE.values().stream().sorted().forEach(blog -> {
-			blogs.add(BlogLink.generateBlogLinkFromBlog(blog));
-		});
+        Website.BLOG_CACHE.values().stream().sorted().forEach(blog -> blogs.add(BlogLink.generateBlogLinkFromBlog(blog)));
 
-		TemplateInstance template = allBlogsPage.data(WebKeys.BLOGS, blogs).data(WebKeys.TITLE, TITLE);
+        TemplateInstance template = allBlogsPage.data(WebKeys.BLOGS, blogs).data(WebKeys.TITLE, TITLE);
 
-		return Response.ok()
-				.entity(template)
-				.header(HttpHeaders.ETAG, eTag)
-				.header(HttpHeaders.CACHE_CONTROL, cacheControl)
-				.header(HttpHeaders.LAST_MODIFIED, lastModified)
-				.build();
-	}
+        return Response.ok()
+                .entity(template)
+                .header(HttpHeaders.ETAG, eTag)
+                .header(HttpHeaders.CACHE_CONTROL, cacheControl)
+                .header(HttpHeaders.LAST_MODIFIED, lastModified)
+                .build();
+    }
 }

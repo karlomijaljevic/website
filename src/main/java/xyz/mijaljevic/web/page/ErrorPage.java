@@ -23,71 +23,57 @@ import xyz.mijaljevic.web.WebKeys;
 
 /**
  * Displays an error message to the user. Depending on the reason.
- * 
- * @author karlo
- * 
- * @since 10.2024
- * 
- * @version 1.0
  */
 @PermitAll
 @Path("/error/{reason}")
-public final class ErrorPage
-{
-	@PathParam(value = "reason")
-	private String reason;
+public final class ErrorPage {
+    @PathParam(value = "reason")
+    private String reason;
 
-	@ConfigProperty(name = "application.cache-control")
-	private String cacheControl;
+    @ConfigProperty(name = "application.cache-control")
+    String cacheControl;
 
-	@Inject
-	private HttpHeaders httpHeaders;
+    @Inject
+    HttpHeaders httpHeaders;
 
-	@Inject
-	private Template errorPage;
+    @Inject
+    Template errorPage;
 
-	/**
-	 * HTTP <i>ETag</i> header.
-	 */
-	private static final String E_TAG = WebHelper.generateEtagHash(Instant.now().toString());
+    /**
+     * HTTP <i>ETag</i> header.
+     */
+    private static final String E_TAG = WebHelper.generateEtagHash(Instant.now().toString());
 
-	/**
-	 * HTTP <i>Last-Modified</i> header.
-	 */
-	private static final String LAST_MODIFIED = WebHelper.parseLastModifiedTime(LocalDateTime.now());
+    /**
+     * HTTP <i>Last-Modified</i> header.
+     */
+    private static final String LAST_MODIFIED = WebHelper.parseLastModifiedTime(LocalDateTime.now());
 
-	@GET
-	@NonBlocking
-	@Produces(MediaType.TEXT_HTML)
-	public Response getPage()
-	{
-		if (!WebHelper.hasResourceChanged(httpHeaders, E_TAG, LAST_MODIFIED))
-		{
-			return Response.status(Status.NOT_MODIFIED).build();
-		}
+    @GET
+    @NonBlocking
+    @Produces(MediaType.TEXT_HTML)
+    public Response getPage() {
+        if (WebHelper.isResourceNotChanged(httpHeaders, E_TAG, LAST_MODIFIED)) {
+            return Response.status(Status.NOT_MODIFIED).build();
+        }
 
-		String status = null;
+        String status;
 
-		if ("not-found".equals(reason))
-		{
-			status = "404 Not Found";
-		}
-		else if ("exception".equals(reason))
-		{
-			status = "500 Internal Server Error";
-		}
-		else
-		{
-			status = "418 I'm a teapot";
-		}
+        if ("not-found".equals(reason)) {
+            status = "404 Not Found";
+        } else if ("exception".equals(reason)) {
+            status = "500 Internal Server Error";
+        } else {
+            status = "418 I'm a teapot";
+        }
 
-		TemplateInstance template = errorPage.data(WebKeys.STATUS, status).data(WebKeys.TITLE, status);
+        TemplateInstance template = errorPage.data(WebKeys.STATUS, status).data(WebKeys.TITLE, status);
 
-		return Response.ok()
-				.entity(template)
-				.header(HttpHeaders.ETAG, E_TAG)
-				.header(HttpHeaders.CACHE_CONTROL, cacheControl)
-				.header(HttpHeaders.LAST_MODIFIED, LAST_MODIFIED)
-				.build();
-	}
+        return Response.ok()
+                .entity(template)
+                .header(HttpHeaders.ETAG, E_TAG)
+                .header(HttpHeaders.CACHE_CONTROL, cacheControl)
+                .header(HttpHeaders.LAST_MODIFIED, LAST_MODIFIED)
+                .build();
+    }
 }
