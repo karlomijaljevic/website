@@ -10,12 +10,9 @@ target/
 .idea/
 
 # Project
-logs/
 blogs/
-static/
+static/images/
 !static/images/favicon.ico
-!static/style.min.css
-!static/rss.xml
 website.mv.db
 website.trace.db
 .env
