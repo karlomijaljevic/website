@@ -1,20 +1,19 @@
 package xyz.mijaljevic.task;
 
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.Quarkus;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import xyz.mijaljevic.ExitCodes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.model.BlogService;
-import xyz.mijaljevic.model.BlogTopicService;
-import xyz.mijaljevic.model.TopicService;
 import xyz.mijaljevic.model.entity.Blog;
-import xyz.mijaljevic.model.entity.BlogTopic;
-import xyz.mijaljevic.model.entity.Topic;
+import xyz.mijaljevic.utils.MarkdownParser;
+import xyz.mijaljevic.utils.TaskUtils;
 import xyz.mijaljevic.web.RssFeed;
-import xyz.mijaljevic.web.WebHelper;
+import xyz.mijaljevic.web.WebPage;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,17 +21,13 @@ import java.nio.file.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * <p>
  * Contains a scheduled method that runs every 5 minutes and checks the
- * {@link WatchKey} that was initialized during class creation. The key monitors
- * the creation/update/deletion of the blogs directory and
+ * {@link WatchKey} that was initialized during class creation. The key
+ * monitors the creation/update/deletion of the blogs directory and
  * creates/updates/deletes entries in the DB accordingly.
- * </p>
+ *
  * <p>
  * During initialization fills the RSS feed with the initial set of blogs and
  * when a new blog is added it adds them to the RSS feed accordingly. It does
@@ -45,11 +40,14 @@ final class WatchBlogsTask {
     @Inject
     BlogService blogService;
 
-    @Inject
-    TopicService topicService;
-
-    @Inject
-    BlogTopicService blogTopicService;
+    /**
+     * The path to the blogs' directory.
+     */
+    @ConfigProperty(
+            name = "application.blogs-directory",
+            defaultValue = "blogs"
+    )
+    String blogsDirectoryPath;
 
     /**
      * Holds the reference to the blogs directory {@link WatchKey}.
@@ -62,41 +60,17 @@ final class WatchBlogsTask {
     private static boolean WatchKeyValid = false;
 
     /**
-     * {@link Pattern} instance used to match HTML line values.
-     */
-    private static final Pattern HTML_LINE_VALUE_PATTERN = Pattern.compile(">(.*)<");
-
-    /**
-     * Blogs are only HTML files therefore the .html extension is expected. This
-     * {@link Pattern} checks that.
-     */
-    private static final Pattern BLOG_FILE_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-]+\\.html$");
-
-    /**
-     * {@link String} instance used to match blog topics block start.
-     */
-    private static final String BLOG_TOPIC_BLOCK_START = "<div class=\"topics\">";
-
-    /**
-     * {@link String} instance used to match blog topics block end.
-     */
-    private static final String BLOG_TOPIC_BLOCK_END = "</div>";
-
-    /**
-     * {@link String} instance used to match blog topics dividers.
-     */
-    private static final String BLOG_TOPIC_DIVIDER = "<span class=\"topic-divider\">";
-
-    /**
-     * <p>
      * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and
      * performs the initial blogs directory check up for new or updated files.
-     * It also compares the database blogs against the files to check which DB
-     * blog has lost its file if any and then removes the entity from the DB.
-     * </p>
+     *
      * <p>
-     * Furthermore it also initializes the RSS feed items aka the home page
-     * blogs.
+     * Furthermore, it also compares the database blogs against the files to
+     * check which DB blog has lost its file if any and then removes the entity
+     * from the DB.
+     * </p>
+     *
+     * <p>
+     * Lastly it also initializes the RSS feed items aka the home page blogs.
      * </p>
      */
     @PostConstruct
@@ -106,23 +80,31 @@ final class WatchBlogsTask {
         try {
             watcher = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
-            ExitCodes.WATCH_BLOGS_TASK_WATCH_SERVICE_FAILED.logAndExit();
+            Log.fatal("Watch blogs task failed to initialize WatchService!");
+            Quarkus.asyncExit();
         }
 
         if (watcher == null) {
             throw new RuntimeException("Watcher not available!");
         }
 
+        Path blogsPath = Paths.get(blogsDirectoryPath);
+
         try {
-            WatchKey = Website.getBlogsDirectory().register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+            WatchKey = blogsPath.register(
+                    watcher,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY
+            );
 
             WatchKeyValid = WatchKey.isValid();
         } catch (IOException e) {
-            ExitCodes.WATCH_BLOGS_TASK_WATCH_KEY_FAILED.logAndExit();
+            Log.fatal("Watch blogs task failed! Does the directory exist?");
+            Quarkus.asyncExit();
         }
 
-        File[] files = Website.getBlogsDirectory().toFile().listFiles();
+        File[] files = blogsPath.toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
@@ -131,35 +113,36 @@ final class WatchBlogsTask {
         List<String> fileNames = new ArrayList<>();
 
         for (File file : files) {
-            if (isFileHtml(file)) {
-                consumeBlogFile(file);
-                fileNames.add(file.getName());
-            }
+            consumeBlogFile(file);
+            fileNames.add(file.getName());
         }
 
         List<Blog> blogs = blogService.listAllBlogsMissingFromFileNames(fileNames);
 
         for (Blog blog : blogs) {
-            Log.info("Found blog entity without file. Deleting it. File: " + blog.getFileName());
+            Log.warn("Found blog without file. Deleting file: " + blog.getFileName());
 
             blogService.deleteBlog(blog);
         }
 
-        WebHelper.updateCacheControlHeaders();
+        WebPage.updateCacheControlHeaders();
 
-        RssFeed.updateRssFeed();
+        RssFeed.updateRssFeed(blogsDirectoryPath);
     }
 
     /**
-     * Runs every 5 minutes and checks the {@link WatchKey} that was initialized
-     * during class creation. The key monitors the creation/update/deletion of
-     * the blogs directory and this method creates/updates/deletes entries in
-     * the DB accordingly.
+     * Runs every 5 minutes and checks the {@link WatchKey} that was
+     * initialized during class creation. The key monitors the blogs directory
+     * and this method creates/updates/deletes entries in the DB accordingly.
      */
-    @Scheduled(identity = "watch_blogs_task", every = "5m", delayed = "5s")
+    @Scheduled(
+            identity = "watch_blogs_task",
+            every = "5m",
+            delayed = "5s"
+    )
     void runWatchBlogsTask() {
         if (!WatchKeyValid) {
-            Log.fatal("WatchKey for the WatchBlogsTask is not valid. Exiting watch_blogs_directory task!");
+            Log.fatal("BLOG - WatchKey NOT valid! Stopping task!");
 
             return;
         }
@@ -171,8 +154,7 @@ final class WatchBlogsTask {
             WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
-                Log.error("OVERFLOW event occurred while watching the blogs directory!");
-
+                Log.error("BLOG - OVERFLOW event occurred!");
                 continue;
             }
 
@@ -181,9 +163,12 @@ final class WatchBlogsTask {
 
             Path filename = ev.context();
 
-            File file = Website.getBlogsDirectory().resolve(filename).toFile();
+            Path blogsPath = Paths.get(blogsDirectoryPath);
 
-            if (!isFileHtml(file)) {
+            File file = blogsPath.resolve(filename).toFile();
+
+            if (!isMarkdownFile(file)) {
+                Log.warn("BLOG - Not a markdown file: " + file.getName());
                 continue;
             }
 
@@ -201,16 +186,19 @@ final class WatchBlogsTask {
             }
 
             changeOccurred = true;
+
             // For the RSS FEED update
-            blogCreated = kind == StandardWatchEventKinds.ENTRY_CREATE;
+            if (!blogCreated) {
+                blogCreated = kind == StandardWatchEventKinds.ENTRY_CREATE;
+            }
         }
 
         if (changeOccurred) {
-            WebHelper.updateCacheControlHeaders();
+            WebPage.updateCacheControlHeaders();
         }
 
         if (blogCreated) {
-            RssFeed.updateRssFeed();
+            RssFeed.updateRssFeed(blogsDirectoryPath);
         }
 
         WatchKeyValid = WatchKey.reset();
@@ -218,22 +206,18 @@ final class WatchBlogsTask {
 
     /**
      * Consumes the provided {@link Blog} {@link File} and either updates or
-     * creates a blog entity depending on the state of the blog file against the
-     * entity in the DB.
+     * creates a blog entity depending on the state of the blog file against
+     * the entity in the DB.
      *
      * @param file A blog file to consume.
-     * @return False in case it failed to parse the file and true if the process
-     * was successful.
+     * @return False in case it failed to parse the file and true if the
+     * process was successful.
      */
     private boolean consumeBlogFile(File file) {
-        String title = getTitleFromFile(file);
-
-        if (title == null) {
-            Log.error("Failed to find file " + file.getName() + " title!");
-            return false;
-        }
+        String title = MarkdownParser.getTitleFromFile(file);
 
         boolean isNew = false;
+
         Blog blog = blogService.findBlogByFileName(file.getName());
 
         if (blog == null) {
@@ -245,7 +229,7 @@ final class WatchBlogsTask {
         String oldHash = blog.getHash();
 
         try {
-            String hash = TaskHelper.hashFile(file);
+            String hash = TaskUtils.hashFile(file);
             blog.setHash(hash);
         } catch (NoSuchAlgorithmException | IOException e) {
             Log.error("Failed to hash file " + blog.getFileName() + " with algorithm " + Website.HASH_ALGORITHM);
@@ -265,155 +249,25 @@ final class WatchBlogsTask {
             }
         }
 
-        handleTopicsFromBlog(blog, file);
-
         if (blog != null) Website.BLOG_CACHE.put(blog.getFileName(), blog);
 
         return true;
     }
 
     /**
-     * <p>
-     * It creates blog topics from the provided blog {@link File} and assigns
-     * them to the provided {@link Blog} entity or if they already exist it will
-     * just assign them.
-     * </p>
-     * <p>
-     * This method is called by the {@link #consumeBlogFile(File)} method to
-     * handle the topics of the blog file. It will modify the provided blog
-     * entity by adding the {@link BlogTopic} entities to it.
-     * </p>
+     * Checks if the provided file is a markdown file by checking its
+     * extension.
      *
-     * @param blog     A {@link Blog} entity to assign the new topics to
-     * @param blogFile A {@link File} instance to check for topics
+     * @param file The file to check.
+     * @return True if the file is a markdown file and false otherwise.
      */
-    private void handleTopicsFromBlog(Blog blog, File blogFile) {
-        if (blog == null || blogFile == null) {
-            Log.error("Blog or blog file is null! Cannot handle topics.");
-            return;
+    private static boolean isMarkdownFile(File file) {
+        if (file == null || !file.isFile()) {
+            return false;
         }
 
-        List<String> lines;
+        String fileName = file.getName().toLowerCase();
 
-        try {
-            lines = Files.readAllLines(blogFile.toPath());
-        } catch (IOException e) {
-            Log.error("Failed to get topics of file " + blogFile.getName());
-            return;
-        }
-
-        try {
-            if (!lines.get(1).contains(BLOG_TOPIC_BLOCK_START)) {
-                Log.warn("No topics defined for file " + blogFile.getName());
-                return;
-            }
-        } catch (IndexOutOfBoundsException e) {
-            Log.warn("Only one line in entire blog " + blogFile.getName() + "! Check if it is just an image.");
-            return;
-        }
-
-        boolean topicStartFound = false;
-        int row = 0;
-
-        while (row != lines.size()) {
-            String line = lines.get(row);
-
-            if (line.contains(BLOG_TOPIC_BLOCK_START) && !topicStartFound) {
-                topicStartFound = true;
-            }
-
-            if (BLOG_TOPIC_BLOCK_END.equals(line) && topicStartFound) break;
-
-            if (!line.contains(BLOG_TOPIC_DIVIDER) && topicStartFound) {
-                Matcher match = HTML_LINE_VALUE_PATTERN.matcher(line);
-
-                if (match.find()) {
-                    blog.getBlogTopics().add(handleTopic(
-                            blog,
-                            match.group(1).replace("#", "")
-                    ));
-                }
-            }
-
-            row++;
-        }
-    }
-
-    /**
-     * Called by <i><code>handleTopicsFromBlog(File)</code></i> to assign the
-     * topic to the provided blog.
-     *
-     * @param blog A {@link Blog} entity to assign the new topics to
-     * @param name A {@link String} topic name
-     * @return Returns a {@link BlogTopic} entity that was created
-     */
-    private BlogTopic handleTopic(Blog blog, String name) {
-        Topic topic = topicService.findTopicByName(name);
-
-        if (topic == null) {
-            topic = new Topic();
-            topic.setName(name);
-
-            topic = topicService.createTopic(topic);
-
-            Log.info("Successfully created topic for file: " + blog.getFileName());
-        } else {
-            topic = topicService.updateTopic(topic);
-
-            Log.info("Successfully updated topic for file: " + blog.getFileName());
-        }
-
-        BlogTopic blogTopic = new BlogTopic(blog, topic);
-
-        blogTopicService.createBlogTopic(blogTopic);
-
-        return blogTopicService.findBlogTopicByBlogAndTopicId(
-                blog.getId(),
-                topic.getId()
-        );
-    }
-
-    /**
-     * Checks if the provided {@link File} is an HTML file (checks only the file
-     * extension).
-     *
-     * @param file A {@link File} instance to check.
-     * @return Returns true if the file is in the proper format, denoted by the
-     * <i>BLOG_FILE_PATTERN</i> {@link Pattern} instance. False otherwise.
-     */
-    private static boolean isFileHtml(File file) {
-        String name = file.getName();
-
-        Matcher match = BLOG_FILE_PATTERN.matcher(name);
-
-        return match.find();
-    }
-
-    /**
-     * Retrieves the blog title from the blog file using regular expressions.
-     *
-     * @param blog A blog {@link File}
-     * @return Either the blog title or null in case of failure.
-     */
-    private static String getTitleFromFile(File blog) {
-        String title = null;
-
-        try {
-            title = Files.readAllLines(blog.toPath()).getFirst();
-
-            Matcher match = HTML_LINE_VALUE_PATTERN.matcher(title);
-
-            if (match.find()) {
-                title = match.group(1);
-            }
-        } catch (
-                IOException |
-                IndexOutOfBoundsException |
-                NoSuchElementException e
-        ) {
-            Log.error("Failed to get title of file " + blog.getName());
-        }
-
-        return title;
+        return fileName.endsWith(".md");
     }
 }

@@ -11,8 +11,8 @@
 		<h1 class="page-title">Blog</h1>
 		{#for blog in blogs}
 		<div class="latest-blogs-section">
-			<a href="/blog/{blog.id}">{blog.title}</a>
-			<span>{blog.date}</span>
+			<a class="latest-blogs-section-blog" href="/blog/{blog.id}">{blog.title}</a>
+			<span class="latest-blogs-section-date">{blog.date}</span>
 		</div>
 		{/for}
 	</body>

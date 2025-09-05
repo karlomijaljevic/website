@@ -85,7 +85,10 @@ public final class Channel {
         this.items = items;
     }
 
-    @XmlElement(name = "link", namespace = "https://www.w3.org/2005/Atom")
+    @XmlElement(
+            name = "link",
+            namespace = "https://www.w3.org/2005/Atom"
+    )
     public AtomLink getAtomLink() {
         return atomLink;
     }
@@ -96,7 +99,16 @@ public final class Channel {
 
     @Override
     public int hashCode() {
-        return Objects.hash(atomLink, description, items, language, lastBuildDate, link, title, webMaster);
+        return Objects.hash(
+                atomLink,
+                description,
+                items,
+                language,
+                lastBuildDate,
+                link,
+                title,
+                webMaster
+        );
     }
 
     @Override
@@ -104,17 +116,28 @@ public final class Channel {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         Channel other = (Channel) obj;
-        return Objects.equals(atomLink, other.atomLink) && Objects.equals(description, other.description)
-                && Objects.equals(items, other.items) && Objects.equals(language, other.language)
-                && Objects.equals(lastBuildDate, other.lastBuildDate) && Objects.equals(link, other.link)
-                && Objects.equals(title, other.title) && Objects.equals(webMaster, other.webMaster);
+
+        return Objects.equals(atomLink, other.atomLink)
+                && Objects.equals(description, other.description)
+                && Objects.equals(items, other.items)
+                && Objects.equals(language, other.language)
+                && Objects.equals(lastBuildDate, other.lastBuildDate)
+                && Objects.equals(link, other.link)
+                && Objects.equals(title, other.title)
+                && Objects.equals(webMaster, other.webMaster);
     }
 
     @Override
     public String toString() {
-        return "Channel [title=" + title + ", link=" + link + ", description=" + description + ", language=" + language
-                + ", lastBuildDate=" + lastBuildDate + ", webMaster=" + webMaster + ", atomLink=" + atomLink
+        return "Channel [title=" + title
+                + ", link=" + link
+                + ", description=" + description
+                + ", language=" + language
+                + ", lastBuildDate=" + lastBuildDate
+                + ", webMaster=" + webMaster
+                + ", atomLink=" + atomLink
                 + ", items=" + items + "]";
     }
 }

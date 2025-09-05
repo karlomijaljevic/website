@@ -1,17 +1,9 @@
 package xyz.mijaljevic.model.entity;
 
+import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.SequenceGenerator;
 
 /**
  * A model that represents a static file (images, css, etc.). The
@@ -20,23 +12,53 @@ import jakarta.persistence.SequenceGenerator;
  */
 @Entity(name = "static_file")
 public class StaticFile {
+    /**
+     * Defines the static file types that the website serves. Currently, it
+     * only servers (not including blog HTML pages):
+     * <ul>
+     *      <li>CSS</li>
+     *      <li>IMAGE</li>
+     * </ul>
+     */
+    public enum Type {
+        CSS, IMAGE
+    }
+
     @Id
-    @SequenceGenerator(name = "staticFileSeq", sequenceName = "static_file_seq", allocationSize = 1)
+    @SequenceGenerator(
+            name = "staticFileSeq",
+            sequenceName = "static_file_seq",
+            allocationSize = 1
+    )
     @GeneratedValue(generator = "staticFileSeq")
     private Long id;
 
-    @Column(name = "name", unique = true, nullable = false, updatable = false)
+    @Column(
+            name = "name",
+            unique = true,
+            nullable = false,
+            updatable = false
+    )
     private String name;
 
-    @Column(name = "hash", nullable = false)
+    @Column(
+            name = "hash",
+            nullable = false
+    )
     private String hash;
 
-    @Column(name = "modified", nullable = false)
+    @Column(
+            name = "modified",
+            nullable = false
+    )
     private LocalDateTime modified;
 
+    @Column(
+            name = "type",
+            nullable = false
+    )
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private StaticFileType type;
+    private Type type;
 
     @PrePersist
     void onCreate() {
@@ -80,11 +102,11 @@ public class StaticFile {
         this.modified = modified;
     }
 
-    public StaticFileType getType() {
+    public Type getType() {
         return type;
     }
 
-    public void setType(StaticFileType type) {
+    public void setType(Type type) {
         this.type = type;
     }
 
@@ -98,15 +120,22 @@ public class StaticFile {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         StaticFile other = (StaticFile) obj;
-        return Objects.equals(hash, other.hash) && Objects.equals(id, other.id)
-                && Objects.equals(modified, other.modified) && Objects.equals(name, other.name)
+
+        return Objects.equals(hash, other.hash)
+                && Objects.equals(id, other.id)
+                && Objects.equals(modified, other.modified)
+                && Objects.equals(name, other.name)
                 && Objects.equals(type, other.type);
     }
 
     @Override
     public String toString() {
-        return "StaticFile [id=" + id + ", hash=" + hash + ", name=" + name + ", modified=" + modified + ", type="
-                + type + "]";
+        return "StaticFile [id=" + id
+                + ", hash=" + hash
+                + ", name=" + name
+                + ", modified=" + modified
+                + ", type=" + type + "]";
     }
 }

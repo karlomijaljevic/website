@@ -1,8 +1,8 @@
 package xyz.mijaljevic.model.dto;
 
-import java.util.Objects;
-
 import xyz.mijaljevic.model.entity.Blog;
+
+import java.util.Objects;
 
 /**
  * A {@link Blog} link model. Used by the website to display blog links which
@@ -64,8 +64,12 @@ public final class BlogLink {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         BlogLink other = (BlogLink) obj;
-        return Objects.equals(date, other.date) && Objects.equals(id, other.id) && Objects.equals(title, other.title);
+
+        return Objects.equals(date, other.date)
+                && Objects.equals(id, other.id)
+                && Objects.equals(title, other.title);
     }
 
     @Override

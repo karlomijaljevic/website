@@ -1,20 +1,7 @@
 package xyz.mijaljevic.web;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.Quarkus;
 import io.smallrye.common.annotation.NonBlocking;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
@@ -29,11 +16,20 @@ import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
-import xyz.mijaljevic.ExitCodes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.model.entity.Blog;
 import xyz.mijaljevic.model.rss.Item;
 import xyz.mijaljevic.model.rss.Rss;
+import xyz.mijaljevic.utils.MarkdownParser;
+
+import java.io.File;
+import java.io.StringWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Serves the RSS feed.
@@ -86,9 +82,18 @@ public final class RssFeed {
             lastBuildDate = DEFAULT_LAST_BUILD_DATE;
         }
 
-        String lastModified = WebHelper.parseLastModifiedTime(LocalDateTime.parse(lastBuildDate, RSS_SPEC_FORMAT));
+        String lastModified = WebPage.parseLastModifiedTime(LocalDateTime.parse(
+                lastBuildDate,
+                RSS_SPEC_FORMAT
+        ));
 
-        if (WebHelper.isResourceNotChanged(httpHeaders, etag, lastModified)) {
+        String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
+        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
+            return Response.status(Status.NOT_MODIFIED).build();
+        }
+
+        String ifModifiedSince = httpHeaders.getHeaderString(HttpHeaders.IF_MODIFIED_SINCE);
+        if (ifModifiedSince != null && ifModifiedSince.equals(lastModified)) {
             return Response.status(Status.NOT_MODIFIED).build();
         }
 
@@ -122,28 +127,28 @@ public final class RssFeed {
 
     /**
      * Updates the items served by the RSS feed.
+     *
+     * @param blogsDirectoryPath The path to the blogs' directory.
      */
-    public static void updateRssFeed() {
+    public static void updateRssFeed(String blogsDirectoryPath) {
         List<Item> items = new ArrayList<>();
 
         Website.retrieveRecentBlogs().forEach(blog -> {
             Item item = new Item();
 
-            String filePath = Website.getBlogsDirectory().toString() + File.separator + blog.getFileName();
+            String filePath = blogsDirectoryPath
+                    + File.separator
+                    + blog.getFileName();
 
-            try {
-                item.setDescription(Files.readString(Paths.get(filePath), StandardCharsets.UTF_8));
-            } catch (IOException e) {
-                Log.error("Failed to read the '" + blog.getFileName() + "' blog contents for RSS!", e);
-
-                return;
-            }
-
+            item.setDescription(MarkdownParser.renderMarkdownToHtml(new File(filePath)));
             item.setGuid(WEBSITE_URL + "blog/" + blog.getId());
             item.setLink(WEBSITE_URL + "blog/" + blog.getId());
             item.setTitle(blog.getTitle());
 
-            String pubDate = blog.getCreated().atZone(Website.TIME_ZONE).format(RSS_SPEC_FORMAT);
+            String pubDate = blog.getCreated()
+                    .atZone(Website.TIME_ZONE)
+                    .format(RSS_SPEC_FORMAT);
+
             item.setPubDate(pubDate);
 
             items.add(item);
@@ -151,10 +156,17 @@ public final class RssFeed {
 
         Rss current = RSS_FEED.get();
 
-        Blog lastUpdatedBlog = Website.BLOG_CACHE.values().stream().sorted().findFirst().orElse(null);
+        Blog lastUpdatedBlog = Website.BLOG_CACHE
+                .values()
+                .stream()
+                .sorted()
+                .findFirst()
+                .orElse(null);
 
         if (lastUpdatedBlog != null) {
-            String pubDate = lastUpdatedBlog.getCreated().atZone(Website.TIME_ZONE).format(RSS_SPEC_FORMAT);
+            String pubDate = lastUpdatedBlog.getCreated()
+                    .atZone(Website.TIME_ZONE)
+                    .format(RSS_SPEC_FORMAT);
             current.getChannel().setLastBuildDate(pubDate);
         }
 
@@ -172,21 +184,20 @@ public final class RssFeed {
         try {
             context = JAXBContext.newInstance(Rss.class);
         } catch (JAXBException e) {
-            Log.fatal(e);
-
-            ExitCodes.RSS_JAXB_CONTEXT_INIT_FAILED.logAndExit();
+            Log.fatal("Failed to create JAXB context for the Rss class!", e);
+            Quarkus.asyncExit();
         }
 
         return context;
     }
 
     /**
-     * Parses the provided file into a {@link Rss} instance. In case the provided
-     * file was not an RSS XML the method returns null.
+     * Parses the provided file into a {@link Rss} instance. In case the
+     * provided file was not an RSS XML the method returns null.
      *
      * @param file A {@link File} to parse
-     * @return Returns a {@link Rss} instance. In case the provided file was not an
-     * RSS XML the method returns null.
+     * @return Returns a {@link Rss} instance. In case the provided file was
+     * not an RSS XML the method returns null.
      */
     private static Rss readRssFeed(File file) {
         try {
@@ -194,17 +205,16 @@ public final class RssFeed {
             return (Rss) jaxbUnmarshaller.unmarshal(file);
         } catch (JAXBException e) {
             Log.error("Failed to parse the RSS feed XML file!", e);
-
             return null;
         }
     }
 
     /**
-     * Transforms the static local {@link Rss} field <i>RSS_FEED</i> into an XML
-     * {@link String}.
+     * Transforms the static local {@link Rss} field <i>RSS_FEED</i> into an
+     * XML {@link String}.
      *
-     * @return A {@link String} holding the RSS feed or null in case an exception
-     * occurs.
+     * @return A {@link String} holding the RSS feed or null in case an
+     * exception occurs.
      */
     private static String fetchRssFeed() {
         try {
@@ -217,7 +227,6 @@ public final class RssFeed {
             return stringWriter.toString();
         } catch (JAXBException e) {
             Log.error("Failed to marshal the RSS instance into a String instance!", e);
-
             return null;
         }
     }

@@ -43,12 +43,16 @@ public final class BlogService {
      * provided list.
      *
      * @param fileNameList A list of blog file names.
-     * @return The {@link Blog} entities which do not match any file names from the
-     * provided list.
+     * @return The {@link Blog} entities which do not match any file names from
+     * the provided list.
      */
-    public List<Blog> listAllBlogsMissingFromFileNames(List<String> fileNameList) {
-        TypedQuery<Blog> query = em.createQuery("select B from blog B where B.fileName not in :fileNameList",
-                Blog.class);
+    public List<Blog> listAllBlogsMissingFromFileNames(
+            List<String> fileNameList
+    ) {
+        TypedQuery<Blog> query = em.createQuery(
+                "select B from blog B where B.fileName not in :fileNameList",
+                Blog.class
+        );
 
         query.setParameter("fileNameList", fileNameList);
 
@@ -56,7 +60,10 @@ public final class BlogService {
     }
 
     public Blog findBlogByFileName(String fileName) {
-        TypedQuery<Blog> query = em.createQuery("select B from blog B where B.fileName = :fileName", Blog.class);
+        TypedQuery<Blog> query = em.createQuery(
+                "select B from blog B where B.fileName = :fileName",
+                Blog.class
+        );
 
         query.setParameter("fileName", fileName);
 

@@ -10,7 +10,10 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * serves for RSS readers.
  */
 @SuppressWarnings("unused")
-@XmlRootElement(name = "link", namespace = "https://www.w3.org/2005/Atom")
+@XmlRootElement(
+        name = "link",
+        namespace = "https://www.w3.org/2005/Atom"
+)
 public final class AtomLink {
     private String href;
     private String rel;
@@ -53,12 +56,18 @@ public final class AtomLink {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         AtomLink other = (AtomLink) obj;
-        return Objects.equals(href, other.href) && Objects.equals(rel, other.rel) && Objects.equals(type, other.type);
+
+        return Objects.equals(href, other.href)
+                && Objects.equals(rel, other.rel)
+                && Objects.equals(type, other.type);
     }
 
     @Override
     public String toString() {
-        return "AtomLink [href=" + href + ", rel=" + rel + ", type=" + type + "]";
+        return "AtomLink [href=" + href
+                + ", rel=" + rel
+                + ", type=" + type + "]";
     }
 }

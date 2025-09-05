@@ -71,15 +71,22 @@ public final class Item {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         Item other = (Item) obj;
-        return Objects.equals(description, other.description) && Objects.equals(guid, other.guid)
-                && Objects.equals(link, other.link) && Objects.equals(pubDate, other.pubDate)
+
+        return Objects.equals(description, other.description)
+                && Objects.equals(guid, other.guid)
+                && Objects.equals(link, other.link)
+                && Objects.equals(pubDate, other.pubDate)
                 && Objects.equals(title, other.title);
     }
 
     @Override
     public String toString() {
-        return "Item [title=" + title + ", link=" + link + ", description=" + description + ", pubDate=" + pubDate
+        return "Item [title=" + title
+                + ", link=" + link
+                + ", description=" + description
+                + ", pubDate=" + pubDate
                 + ", guid=" + guid + "]";
     }
 }

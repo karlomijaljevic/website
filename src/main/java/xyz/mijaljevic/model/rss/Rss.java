@@ -37,7 +37,9 @@ public final class Rss {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         Rss other = (Rss) obj;
+
         return Objects.equals(channel, other.channel);
     }
 

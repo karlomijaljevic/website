@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -13,9 +12,10 @@ import java.util.Objects;
  * automatically created/updated during entity persistence/update there is no
  * need to set them manually.
  * </p>
+ *
  * <p>
  * Implements the {@link Comparable} interface where the natural ordering of
- * blogs is the newest goes first and the oldest goes second aka ordered by the
+ * blogs is the newest goes first and the oldest goes last aka ordered by the
  * <i>created</i> attribute. This is against the standard recommendation
  * <i>(does not follow the equals() method)</i>. This is done to simplify the
  * sorting of blog entities.
@@ -23,23 +23,46 @@ import java.util.Objects;
  */
 @Entity(name = "blog")
 public class Blog implements Comparable<Blog> {
+    /**
+     * Website date pattern used for displaying the created and updated dates.
+     */
     private static final DateTimeFormatter WEBSITE_DATE_PATTERN = DateTimeFormatter.ofPattern("dd-MMM-uuuu");
 
     @Id
-    @SequenceGenerator(name = "blogSeq", sequenceName = "blog_seq", allocationSize = 1)
+    @SequenceGenerator(
+            name = "blogSeq",
+            sequenceName = "blog_seq",
+            allocationSize = 1
+    )
     @GeneratedValue(generator = "blogSeq")
     private Long id;
 
-    @Column(name = "title", nullable = false, unique = true)
+    @Column(
+            name = "title",
+            nullable = false,
+            unique = true
+    )
     private String title;
 
-    @Column(name = "file_name", nullable = false, unique = true, updatable = false)
+    @Column(
+            name = "file_name",
+            nullable = false,
+            unique = true,
+            updatable = false
+    )
     private String fileName;
 
-    @Column(name = "hash", nullable = false)
+    @Column(
+            name = "hash",
+            nullable = false
+    )
     private String hash;
 
-    @Column(name = "created", nullable = false, updatable = false)
+    @Column(
+            name = "created",
+            nullable = false,
+            updatable = false
+    )
     private LocalDateTime created;
 
     @Column(name = "updated")
@@ -50,9 +73,6 @@ public class Blog implements Comparable<Blog> {
 
     @Transient
     private String data;
-
-    @OneToMany(mappedBy = "blog", fetch = FetchType.EAGER)
-    private List<BlogTopic> blogTopics;
 
     @PrePersist
     void onCreate() {
@@ -142,14 +162,6 @@ public class Blog implements Comparable<Blog> {
         this.data = data;
     }
 
-    public List<BlogTopic> getBlogTopics() {
-        return blogTopics;
-    }
-
-    public void setBlogTopics(List<BlogTopic> blogTopics) {
-        this.blogTopics = blogTopics;
-    }
-
     @Override
     public int compareTo(Blog other) {
         if (created.isBefore(other.created)) {
@@ -171,15 +183,24 @@ public class Blog implements Comparable<Blog> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
+
         Blog other = (Blog) obj;
-        return Objects.equals(created, other.created) && Objects.equals(fileName, other.fileName)
-                && Objects.equals(id, other.id) && Objects.equals(title, other.title)
-                && Objects.equals(updated, other.updated) && Objects.equals(hash, other.hash);
+
+        return Objects.equals(created, other.created)
+                && Objects.equals(fileName, other.fileName)
+                && Objects.equals(id, other.id)
+                && Objects.equals(title, other.title)
+                && Objects.equals(updated, other.updated)
+                && Objects.equals(hash, other.hash);
     }
 
     @Override
     public String toString() {
-        return "Blog [id=" + id + ", title=" + title + ", fileName=" + fileName + ", created=" + created + ", updated="
-                + updated + ", hash=" + hash + "]";
+        return "Blog [id=" + id
+                + ", title=" + title
+                + ", fileName=" + fileName
+                + ", created=" + created
+                + ", updated=" + updated
+                + ", hash=" + hash + "]";
     }
 }

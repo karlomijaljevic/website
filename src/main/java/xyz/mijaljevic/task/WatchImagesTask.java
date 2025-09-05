@@ -1,38 +1,47 @@
 package xyz.mijaljevic.task;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.Quarkus;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import xyz.mijaljevic.ExitCodes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.model.StaticFileService;
 import xyz.mijaljevic.model.entity.StaticFile;
-import xyz.mijaljevic.model.entity.StaticFileType;
+import xyz.mijaljevic.model.entity.StaticFile.Type;
+import xyz.mijaljevic.utils.TaskUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class contains a scheduled method that runs every 5 minutes and checks the
- * {@link WatchKey} that was initialized during class creation. The key monitors
- * the creation/update/deletion of the images directory and
- * creates/updates/deletes entries in the DB accordingly.
+ * {@link WatchKey} that was initialized during class creation. The key
+ * monitors the images directory and creates/updates/deletes entries in the DB
+ * accordingly.
  */
 @ApplicationScoped
 final class WatchImagesTask {
+    /**
+     * The service that handles the {@link StaticFile} entity CRUD operations.
+     */
     @Inject
     StaticFileService staticFileService;
+
+    /**
+     * The path to the images' directory.
+     */
+    @ConfigProperty(
+            name = "application.images-directory",
+            defaultValue = "static/images"
+    )
+    String imagesDirectoryPath;
 
     /**
      * Holds the reference to the images directory {@link WatchKey}.
@@ -45,10 +54,10 @@ final class WatchImagesTask {
     private static boolean WatchKeyValid = false;
 
     /**
-     * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and performs
-     * the initial images directory check up for new or updated files. It also
-     * compares the database images against the files to check which DB image has
-     * lost its file if any and then removes the entity from the DB.
+     * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and
+     * performs the initial images directory check up for new or updated files.
+     * It also compares the database images against the files to check which DB
+     * image has lost its file if any and then removes the entity from the DB.
      */
     @PostConstruct
     void initWatchImagesTask() {
@@ -57,23 +66,31 @@ final class WatchImagesTask {
         try {
             watcher = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
-            ExitCodes.WATCH_IMAGES_TASK_WATCH_SERVICE_FAILED.logAndExit();
+            Log.fatal("Failed to initialize WatchService for images directory", e);
+            Quarkus.asyncExit();
         }
 
         if (watcher == null) {
             throw new RuntimeException("Watcher service not available");
         }
 
+        Path imagesPath = Paths.get(imagesDirectoryPath);
+
         try {
-            WatchKey = Website.getImagesDirectory().register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+            WatchKey = imagesPath.register(
+                    watcher,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY
+            );
 
             WatchKeyValid = WatchKey.isValid();
         } catch (IOException e) {
-            ExitCodes.WATCH_IMAGES_TASK_WATCH_KEY_FAILED.logAndExit();
+            Log.fatal("Failed to register images directory with WatchService", e);
+            Quarkus.asyncExit();
         }
 
-        File[] files = Website.getImagesDirectory().toFile().listFiles();
+        File[] files = imagesPath.toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
@@ -86,26 +103,31 @@ final class WatchImagesTask {
             fileNames.add(file.getName());
         }
 
-        List<StaticFile> staticFiles = staticFileService.listAllMissingFiles(fileNames, StaticFileType.IMAGE);
+        List<StaticFile> staticFiles = staticFileService.listAllMissingFiles(
+                fileNames,
+                Type.IMAGE
+        );
 
-        for (StaticFile staticFile : staticFiles) {
-            staticFileService.deleteStaticFile(staticFile);
+        for (StaticFile file : staticFiles) {
+            staticFileService.deleteStaticFile(file);
 
-            Log.info("Found image entity without file. Deleting it. File: " + staticFile.getName());
+            Log.info("Found image without file. Deleting file: " + file.getName());
         }
     }
 
     /**
-     * Runs every 5 minutes and checks the {@link WatchKey} that was initialized
-     * during class creation. The key monitors the creation/update/deletion of the
-     * images directory and this method creates/updates/deletes entries in the DB
-     * accordingly.
+     * Runs every 5 minutes and checks the {@link WatchKey} that was
+     * initialized during class creation. The key monitors the images directory
+     * and this method creates/updates/deletes entries in the DB accordingly.
      */
-    @Scheduled(identity = "watch_images_task", every = "5m", delayed = "5s")
+    @Scheduled(
+            identity = "watch_images_task",
+            every = "5m",
+            delayed = "5s"
+    )
     void runWatchImagesTask() {
         if (!WatchKeyValid) {
-            Log.fatal("WatchKey for the WatchImagesTask is not valid. Exiting watch_images_directory task!");
-
+            Log.fatal("IMAGE - WatchKey NOT valid. Stopping task!");
             return;
         }
 
@@ -113,8 +135,7 @@ final class WatchImagesTask {
             WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
-                Log.error("OVERFLOW event occurred while watching the images directory!");
-
+                Log.error("IMAGE - OVERFLOW event occurred!");
                 continue;
             }
 
@@ -123,16 +144,18 @@ final class WatchImagesTask {
 
             Path filename = ev.context();
 
-            File file = Website.getImagesDirectory().resolve(filename).toFile();
+            Path imagesPath = Paths.get(imagesDirectoryPath);
+
+            File file = imagesPath.resolve(filename).toFile();
 
             if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-                if (consumeImageFile(file)) {
-                    StaticFile staticFile = staticFileService.findFileByName(file.getName());
+                consumeImageFile(file);
+            } else {
+                StaticFile staticFile = staticFileService.findFileByName(file.getName());
 
-                    if (staticFile != null && staticFileService.deleteStaticFile(staticFile)) {
-                        Website.STATIC_CACHE.remove(staticFile.getName());
-                        Log.info("Successfully deleted image of file: " + file.getName());
-                    }
+                if (staticFile != null && staticFileService.deleteStaticFile(staticFile)) {
+                    Website.STATIC_CACHE.remove(staticFile.getName());
+                    Log.info("Successfully deleted image of file: " + file.getName());
                 }
             }
         }
@@ -146,10 +169,8 @@ final class WatchImagesTask {
      * entity in the DB.
      *
      * @param file Image file to consume.
-     * @return False in case it failed to parse the file and true if the process was
-     * successful.
      */
-    private boolean consumeImageFile(File file) {
+    private void consumeImageFile(File file) {
         boolean isNew = false;
         StaticFile staticFile = staticFileService.findFileByName(file.getName());
 
@@ -161,16 +182,19 @@ final class WatchImagesTask {
         String oldHash = staticFile.getHash();
 
         try {
-            String hash = TaskHelper.hashFile(file);
+            String hash = TaskUtils.hashFile(file);
             staticFile.setHash(hash);
         } catch (NoSuchAlgorithmException | IOException e) {
-            Log.error("Failed to hash file " + staticFile.getName() + " with algorithm " + Website.HASH_ALGORITHM);
-            return false;
+            Log.error("Failed to hash file "
+                    + staticFile.getName()
+                    + " with algorithm "
+                    + Website.HASH_ALGORITHM
+            );
         }
 
         if (isNew) {
             staticFile.setName(file.getName());
-            staticFile.setType(StaticFileType.IMAGE);
+            staticFile.setType(Type.IMAGE);
             staticFileService.createStaticFile(staticFile);
             staticFile = staticFileService.findFileByName(file.getName());
             Log.info("Successfully created image for file: " + file.getName());
@@ -183,7 +207,5 @@ final class WatchImagesTask {
         }
 
         Website.STATIC_CACHE.put(staticFile.getName(), staticFile);
-
-        return true;
     }
 }

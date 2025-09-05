@@ -1,6 +1,7 @@
 package xyz.mijaljevic;
 
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -16,8 +17,7 @@ import java.nio.file.Path;
 @ApplicationScoped
 final class LifecycleHandler {
     /**
-     * The path to the blogs' directory. Configured using the
-     * "application.blogs-directory" property.
+     * The path to the blogs' directory.
      */
     @ConfigProperty(
             name = "application.blogs-directory",
@@ -26,8 +26,7 @@ final class LifecycleHandler {
     String blogsDirectoryPath;
 
     /**
-     * The path to the images' directory. Configured using the
-     * "application.images-directory" property.
+     * The path to the images' directory.
      */
     @ConfigProperty(
             name = "application.images-directory",
@@ -36,22 +35,12 @@ final class LifecycleHandler {
     String imagesDirectoryPath;
 
     /**
-     * The path to the CSS directory. Configured using the
-     * "application.css-directory" property.
-     */
-    @ConfigProperty(
-            name = "application.css-directory",
-            defaultValue = "static/css"
-    )
-    String cssDirectoryPath;
-
-    /**
      * The path to the RSS feed file. Configured using the
      * "application.rss-feed" property.
      */
     @ConfigProperty(
             name = "application.rss-feed",
-            defaultValue = "rss.xml"
+            defaultValue = "static/rss.xml"
     )
     String rssFilePath;
 
@@ -62,26 +51,23 @@ final class LifecycleHandler {
      * @param event The startup event.
      */
     void onStart(@Observes StartupEvent event) {
-        Website.BlogsDirectory = configureDirectory(blogsDirectoryPath);
-        if (Website.BlogsDirectory == null) {
-            ExitCodes.BLOGS_DIRECTORY_SETUP_FAILED.logAndExit();
+        Path path = configureDirectory(blogsDirectoryPath);
+        if (path == null) {
+            Log.fatal("The blogs directory could not be created.");
+            Quarkus.asyncExit();
         }
         Log.info("Successfully configured the blogs directory reference.");
 
-        Website.ImagesDirectory = configureDirectory(imagesDirectoryPath);
-        if (Website.ImagesDirectory == null) {
-            ExitCodes.IMAGES_DIRECTORY_SETUP_FAILED.logAndExit();
+        path = configureDirectory(imagesDirectoryPath);
+        if (path == null) {
+            Log.fatal("The images directory could not be created.");
+            Quarkus.asyncExit();
         }
         Log.info("Successfully configured the images directory reference.");
 
-        Website.CssDirectory = configureDirectory(cssDirectoryPath);
-        if (Website.CssDirectory == null) {
-            ExitCodes.CSS_DIRECTORY_SETUP_FAILED.logAndExit();
-        }
-        Log.info("Successfully configured the css directory reference.");
-
         if (!RssFeed.initializeRssFeed(rssFilePath)) {
-            ExitCodes.RSS_FILE_PARSING_FAILED.logAndExit();
+            Log.fatal("The RSS feed root content could not be initialized.");
+            Quarkus.asyncExit();
         }
         Log.info("Successfully initialized the RSS feed root content.");
     }
@@ -91,9 +77,9 @@ final class LifecycleHandler {
      * {@link String} path or null in case of failure.
      *
      * @param path The path to the directory which needs to be configured.
-     * @return A {@link Path} instance of the directory which is resolved by the
-     * provided path. If null is returned than the method failed to create a
-     * directory.
+     * @return A {@link Path} instance of the directory which is resolved by
+     * the provided path. If null is returned than the method failed to create
+     * a directory.
      */
     private static Path configureDirectory(String path) {
         File directory = new File(path);

@@ -1,7 +1,5 @@
 package xyz.mijaljevic.model;
 
-import java.util.List;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -10,7 +8,9 @@ import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import xyz.mijaljevic.model.entity.StaticFile;
-import xyz.mijaljevic.model.entity.StaticFileType;
+import xyz.mijaljevic.model.entity.StaticFile.Type;
+
+import java.util.List;
 
 /**
  * Service class used for {@link StaticFile} entities.
@@ -44,14 +44,18 @@ public class StaticFileService {
      * contained in the provided file name list.
      *
      * @param fileNameList A list of <i>static</i> file names.
-     * @param type         A {@link StaticFileType} which needs to be queried.
-     * @return The {@link StaticFile} entities which do not match any file names
-     * from the provided list of the provided type.
+     * @param type         A {@link Type} which needs to be queried.
+     * @return The {@link StaticFile} entities which do not match any file
+     * names from the provided list of the provided type.
      */
-    public List<StaticFile> listAllMissingFiles(List<String> fileNameList, StaticFileType type) {
+    public List<StaticFile> listAllMissingFiles(
+            List<String> fileNameList,
+            Type type
+    ) {
         TypedQuery<StaticFile> query = em.createQuery(
                 "select SF from static_file SF where SF.type = :type and SF.name not in :fileNameList",
-                StaticFile.class);
+                StaticFile.class
+        );
 
         query.setParameter("fileNameList", fileNameList);
         query.setParameter("type", type);
@@ -60,8 +64,10 @@ public class StaticFileService {
     }
 
     public StaticFile findFileByName(String name) {
-        TypedQuery<StaticFile> query = em.createQuery("select SF from static_file SF where SF.name = :name",
-                StaticFile.class);
+        TypedQuery<StaticFile> query = em.createQuery(
+                "select SF from static_file SF where SF.name = :name",
+                StaticFile.class
+        );
 
         query.setParameter("name", name);
 

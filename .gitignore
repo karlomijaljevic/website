@@ -14,7 +14,7 @@ logs/
 blogs/
 static/
 !static/images/favicon.ico
-!static/css/style.min.css
+!static/style.min.css
 !static/rss.xml
 website.mv.db
 website.trace.db
