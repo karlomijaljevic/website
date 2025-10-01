@@ -4,18 +4,33 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>xyz.mijaljevic</groupId>
 	<artifactId>website</artifactId>
 	<version>1.1</version>
 
+	<description>
+		A simple website backend built with Quarkus, featuring a REST API,
+		server-side rendering with Qute, scheduled tasks, and database integration
+		using Hibernate ORM and H2 database. It also includes Markdown support
+		for content formatting. Powers my personal website.
+	</description>
+
+	<licenses>
+		<license>
+			<name>GNU General Public License v3.0</name>
+			<url>https://www.gnu.org/licenses/gpl-3.0.en.html</url>
+			<comments>A copy of the license is included in the repository.</comments>
+		</license>
+	</licenses>
+
 	<properties>
-		<compiler-plugin.version>3.13.0</compiler-plugin.version>
-		<maven.compiler.release>21</maven.compiler.release>
+		<maven.compiler.release>25</maven.compiler.release>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
 		<quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-		<quarkus.platform.version>3.26.1</quarkus.platform.version>
+		<quarkus.platform.version>3.28.2</quarkus.platform.version>
 	</properties>
 
 	<dependencyManagement>
@@ -85,7 +100,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>${compiler-plugin.version}</version>
+				<version>3.13.0</version>
 				<configuration>
 					<release>${maven.compiler.release}</release>
 					<compilerArgs>

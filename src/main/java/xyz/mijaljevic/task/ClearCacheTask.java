@@ -1,10 +1,32 @@
+/**
+ * Copyright (C) 2025 Karlo Mijaljević
+ *
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * </p>
+ *
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * </p>
+ *
+ * <p>
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * </p>
+ */
 package xyz.mijaljevic.task;
 
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.model.entity.Blog;
+import xyz.mijaljevic.domain.entity.Blog;
 
 import java.time.LocalDateTime;
 import java.util.List;
