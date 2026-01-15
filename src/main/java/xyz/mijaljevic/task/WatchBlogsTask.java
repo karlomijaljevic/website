@@ -110,7 +110,7 @@ final class WatchBlogsTask {
             throw new RuntimeException("Watcher not available!");
         }
 
-        Path blogsPath = Paths.get(blogsDirectoryPath);
+        final Path blogsPath = Paths.get(blogsDirectoryPath);
 
         try {
             WatchKey = blogsPath.register(
@@ -126,20 +126,20 @@ final class WatchBlogsTask {
             Quarkus.asyncExit();
         }
 
-        File[] files = blogsPath.toFile().listFiles();
+        final File[] files = blogsPath.toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
         }
 
-        List<String> fileNames = new ArrayList<>();
+        final List<String> fileNames = new ArrayList<>();
 
         for (File file : files) {
             consumeBlogFile(file);
             fileNames.add(file.getName());
         }
 
-        List<Blog> blogs = blogService.listAllBlogsMissingFromFileNames(fileNames);
+        final List<Blog> blogs = blogService.listAllBlogsMissingFromFileNames(fileNames);
 
         for (Blog blog : blogs) {
             Log.warn("Found blog without file. Deleting file: " + blog.getFileName());
@@ -172,8 +172,8 @@ final class WatchBlogsTask {
         boolean changeOccurred = false;
         boolean blogCreated = false;
 
-        for (WatchEvent<?> event : WatchKey.pollEvents()) {
-            WatchEvent.Kind<?> kind = event.kind();
+        for (final WatchEvent<?> event : WatchKey.pollEvents()) {
+            final WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
                 Log.error("BLOG - OVERFLOW event occurred!");
@@ -181,13 +181,13 @@ final class WatchBlogsTask {
             }
 
             @SuppressWarnings("unchecked")
-            WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            final WatchEvent<Path> ev = (WatchEvent<Path>) event;
 
-            Path filename = ev.context();
+            final Path filename = ev.context();
 
-            Path blogsPath = Paths.get(blogsDirectoryPath);
+            final Path blogsPath = Paths.get(blogsDirectoryPath);
 
-            File file = blogsPath.resolve(filename).toFile();
+            final File file = blogsPath.resolve(filename).toFile();
 
             if (!isMarkdownFile(file)) {
                 Log.warn("BLOG - Not a markdown file: " + file.getName());
@@ -199,7 +199,7 @@ final class WatchBlogsTask {
                     continue;
                 }
             } else {
-                Blog blog = blogService.findBlogByFileName(file.getName());
+                final Blog blog = blogService.findBlogByFileName(file.getName());
 
                 if (blog != null && blogService.deleteBlog(blog)) {
                     Website.BLOG_CACHE.remove(blog.getFileName());
@@ -235,8 +235,8 @@ final class WatchBlogsTask {
      * @return False in case it failed to parse the file and true if the
      * process was successful.
      */
-    private boolean consumeBlogFile(File file) {
-        String title = MarkdownParser.getTitleFromFile(file);
+    private boolean consumeBlogFile(final File file) {
+        final String title = MarkdownParser.getTitleFromFile(file);
 
         boolean isNew = false;
 
@@ -248,10 +248,10 @@ final class WatchBlogsTask {
         }
 
         blog.setTitle(title);
-        String oldHash = blog.getHash();
+        final String oldHash = blog.getHash();
 
         try {
-            String hash = TaskUtils.hashFile(file);
+            final String hash = TaskUtils.hashFile(file);
             blog.setHash(hash);
         } catch (NoSuchAlgorithmException | IOException e) {
             Log.error("Failed to hash file " + blog.getFileName() + " with algorithm " + Website.HASH_ALGORITHM);
@@ -283,12 +283,12 @@ final class WatchBlogsTask {
      * @param file The file to check.
      * @return True if the file is a markdown file and false otherwise.
      */
-    private static boolean isMarkdownFile(File file) {
+    private static boolean isMarkdownFile(final File file) {
         if (file == null || !file.isFile()) {
             return false;
         }
 
-        String fileName = file.getName().toLowerCase();
+        final String fileName = file.getName().toLowerCase();
 
         return fileName.endsWith(".md");
     }

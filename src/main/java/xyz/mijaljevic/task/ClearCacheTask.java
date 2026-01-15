@@ -67,7 +67,7 @@ final class ClearCacheTask {
             delayed = "5s"
     )
     void clearBlogsCache() {
-        List<Blog> recent = Website.retrieveRecentBlogs();
+        final List<Blog> recent = Website.retrieveRecentBlogs();
 
         Website.BLOG_CACHE
                 .entrySet()
@@ -76,9 +76,9 @@ final class ClearCacheTask {
                         && entry.getValue().getLastRead() != null
                 )
                 .forEach(entry -> {
-                    LocalDateTime lastRead = entry.getValue().getLastRead();
+                    final LocalDateTime lastRead = entry.getValue().getLastRead();
 
-                    boolean isBefore = lastRead.isBefore(
+                    final boolean isBefore = lastRead.isBefore(
                             LocalDateTime.now().minusHours(MAX_NOT_READ_HOURS)
                     );
 

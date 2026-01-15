@@ -96,7 +96,7 @@ final class WatchImagesTask {
             throw new RuntimeException("Watcher service not available");
         }
 
-        Path imagesPath = Paths.get(imagesDirectoryPath);
+        final Path imagesPath = Paths.get(imagesDirectoryPath);
 
         try {
             WatchKey = imagesPath.register(
@@ -112,20 +112,20 @@ final class WatchImagesTask {
             Quarkus.asyncExit();
         }
 
-        File[] files = imagesPath.toFile().listFiles();
+        final File[] files = imagesPath.toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
         }
 
-        List<String> fileNames = new ArrayList<>();
+        final List<String> fileNames = new ArrayList<>();
 
         for (File file : files) {
             consumeImageFile(file);
             fileNames.add(file.getName());
         }
 
-        List<StaticFile> staticFiles = staticFileService.listAllMissingFiles(
+        final List<StaticFile> staticFiles = staticFileService.listAllMissingFiles(
                 fileNames,
                 Type.IMAGE
         );
@@ -153,8 +153,8 @@ final class WatchImagesTask {
             return;
         }
 
-        for (WatchEvent<?> event : WatchKey.pollEvents()) {
-            WatchEvent.Kind<?> kind = event.kind();
+        for (final WatchEvent<?> event : WatchKey.pollEvents()) {
+            final WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
                 Log.error("IMAGE - OVERFLOW event occurred!");
@@ -162,18 +162,18 @@ final class WatchImagesTask {
             }
 
             @SuppressWarnings("unchecked")
-            WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            final WatchEvent<Path> ev = (WatchEvent<Path>) event;
 
-            Path filename = ev.context();
+            final Path filename = ev.context();
 
-            Path imagesPath = Paths.get(imagesDirectoryPath);
+            final Path imagesPath = Paths.get(imagesDirectoryPath);
 
-            File file = imagesPath.resolve(filename).toFile();
+            final File file = imagesPath.resolve(filename).toFile();
 
             if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                 consumeImageFile(file);
             } else {
-                StaticFile staticFile = staticFileService.findFileByName(file.getName());
+                final StaticFile staticFile = staticFileService.findFileByName(file.getName());
 
                 if (staticFile != null && staticFileService.deleteStaticFile(staticFile)) {
                     Website.STATIC_CACHE.remove(staticFile.getName());
@@ -201,10 +201,10 @@ final class WatchImagesTask {
             isNew = true;
         }
 
-        String oldHash = staticFile.getHash();
+        final String oldHash = staticFile.getHash();
 
         try {
-            String hash = TaskUtils.hashFile(file);
+            final String hash = TaskUtils.hashFile(file);
             staticFile.setHash(hash);
         } catch (NoSuchAlgorithmException | IOException e) {
             Log.error("Failed to hash file "

@@ -103,8 +103,8 @@ final class LifecycleHandler {
      * the provided path. If null is returned than the method failed to create
      * a directory.
      */
-    private static Path configureDirectory(String path) {
-        File directory = new File(path);
+    private static Path configureDirectory(final String path) {
+        final File directory = new File(path);
 
         if (!directory.exists()) {
             Log.warn("The '" + path + "' directory does not exist. Creating one now.");

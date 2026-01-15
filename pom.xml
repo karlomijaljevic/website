@@ -7,7 +7,7 @@
 
 	<groupId>xyz.mijaljevic</groupId>
 	<artifactId>website</artifactId>
-	<version>1.1</version>
+	<version>1.2</version>
 
 	<description>
 		A simple website backend built with Quarkus, featuring a REST API,
@@ -30,7 +30,8 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
 		<quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-		<quarkus.platform.version>3.28.2</quarkus.platform.version>
+		<quarkus.platform.version>3.30.6</quarkus.platform.version>
+        <lombok.version>1.18.42</lombok.version>
 	</properties>
 
 	<dependencyManagement>
@@ -79,6 +80,12 @@
 			<artifactId>commonmark</artifactId>
 			<version>0.25.1</version>
 		</dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -87,7 +94,7 @@
 			<plugin>
 				<groupId>${quarkus.platform.group-id}</groupId>
 				<artifactId>quarkus-maven-plugin</artifactId>
-				<version>${quarkus.platform.version}</version>
+                <version>${quarkus.platform.version}</version>
 				<extensions>true</extensions>
 				<executions>
 					<execution>
@@ -106,6 +113,13 @@
 					<compilerArgs>
 						<arg>-parameters</arg>
 					</compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
 				</configuration>
 			</plugin>
 		</plugins>

@@ -22,15 +22,15 @@
  */
 package xyz.mijaljevic.domain.rss;
 
-import java.util.Objects;
-
 import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.Data;
 
 /**
  * Represents the <i>atom:link</i> element in the RSS XML file that the website
  * serves for RSS readers.
  */
+@Data
 @SuppressWarnings("unused")
 @XmlRootElement(
         name = "link",
@@ -46,50 +46,13 @@ public final class AtomLink {
         return href;
     }
 
-    public void setHref(String href) {
-        this.href = href;
-    }
-
     @XmlAttribute(name = "rel")
     public String getRel() {
         return rel;
     }
 
-    public void setRel(String rel) {
-        this.rel = rel;
-    }
-
     @XmlAttribute(name = "type")
     public String getType() {
         return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(href, rel, type);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
-
-        AtomLink other = (AtomLink) obj;
-
-        return Objects.equals(href, other.href)
-                && Objects.equals(rel, other.rel)
-                && Objects.equals(type, other.type);
-    }
-
-    @Override
-    public String toString() {
-        return "AtomLink [href=" + href
-                + ", rel=" + rel
-                + ", type=" + type + "]";
     }
 }

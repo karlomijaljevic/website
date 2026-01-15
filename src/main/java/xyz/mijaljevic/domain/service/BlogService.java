@@ -42,18 +42,18 @@ public final class BlogService {
     EntityManager em;
 
     @Transactional
-    public void createBlog(Blog blog) {
+    public void createBlog(final Blog blog) {
         em.persist(blog);
     }
 
     @Transactional
-    public Blog updateBlog(Blog blog) {
+    public Blog updateBlog(final Blog blog) {
         return em.merge(blog);
     }
 
     @Transactional
-    public boolean deleteBlog(Blog blog) {
-        Query query = em.createQuery("delete from blog where id = :id");
+    public boolean deleteBlog(final Blog blog) {
+        final Query query = em.createQuery("delete from blog where id = :id");
 
         query.setParameter("id", blog.getId());
 
@@ -69,9 +69,9 @@ public final class BlogService {
      * the provided list.
      */
     public List<Blog> listAllBlogsMissingFromFileNames(
-            List<String> fileNameList
+            final List<String> fileNameList
     ) {
-        TypedQuery<Blog> query = em.createQuery(
+        final TypedQuery<Blog> query = em.createQuery(
                 "select B from blog B where B.fileName not in :fileNameList",
                 Blog.class
         );
@@ -81,8 +81,8 @@ public final class BlogService {
         return query.getResultList();
     }
 
-    public Blog findBlogByFileName(String fileName) {
-        TypedQuery<Blog> query = em.createQuery(
+    public Blog findBlogByFileName(final String fileName) {
+        final TypedQuery<Blog> query = em.createQuery(
                 "select B from blog B where B.fileName = :fileName",
                 Blog.class
         );

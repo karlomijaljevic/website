@@ -54,7 +54,7 @@ public class StaticFileService {
 
     @Transactional
     public boolean deleteStaticFile(StaticFile staticFile) {
-        Query query = em.createQuery("delete from static_file where id = :id");
+        final Query query = em.createQuery("delete from static_file where id = :id");
 
         query.setParameter("id", staticFile.getId());
 
@@ -71,10 +71,10 @@ public class StaticFileService {
      * names from the provided list of the provided type.
      */
     public List<StaticFile> listAllMissingFiles(
-            List<String> fileNameList,
-            Type type
+            final List<String> fileNameList,
+            final Type type
     ) {
-        TypedQuery<StaticFile> query = em.createQuery(
+        final TypedQuery<StaticFile> query = em.createQuery(
                 "select SF from static_file SF where SF.type = :type and SF.name not in :fileNameList",
                 StaticFile.class
         );
@@ -86,7 +86,7 @@ public class StaticFileService {
     }
 
     public StaticFile findFileByName(String name) {
-        TypedQuery<StaticFile> query = em.createQuery(
+        final TypedQuery<StaticFile> query = em.createQuery(
                 "select SF from static_file SF where SF.name = :name",
                 StaticFile.class
         );

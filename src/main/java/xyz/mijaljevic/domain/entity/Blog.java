@@ -23,10 +23,10 @@
 package xyz.mijaljevic.domain.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Objects;
 
 /**
  * <p>
@@ -43,6 +43,7 @@ import java.util.Objects;
  * sorting of blog entities.
  * </p>
  */
+@Data
 @Entity(name = "blog")
 public class Blog implements Comparable<Blog> {
     /**
@@ -120,70 +121,6 @@ public class Blog implements Comparable<Blog> {
         return updated == null ? "" : WEBSITE_DATE_PATTERN.format(updated);
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public String getHash() {
-        return hash;
-    }
-
-    public void setHash(String hash) {
-        this.hash = hash;
-    }
-
-    public LocalDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(LocalDateTime created) {
-        this.created = created;
-    }
-
-    public LocalDateTime getUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(LocalDateTime updated) {
-        this.updated = updated;
-    }
-
-    public LocalDateTime getLastRead() {
-        return lastRead;
-    }
-
-    public void setLastRead(LocalDateTime lastRead) {
-        this.lastRead = lastRead;
-    }
-
-    public String getData() {
-        return data;
-    }
-
-    public void setData(String data) {
-        this.data = data;
-    }
-
     @Override
     public int compareTo(Blog other) {
         if (created.isBefore(other.created)) {
@@ -193,36 +130,5 @@ public class Blog implements Comparable<Blog> {
         } else {
             return -1;
         }
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(created, fileName, id, title, updated, hash);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
-
-        Blog other = (Blog) obj;
-
-        return Objects.equals(created, other.created)
-                && Objects.equals(fileName, other.fileName)
-                && Objects.equals(id, other.id)
-                && Objects.equals(title, other.title)
-                && Objects.equals(updated, other.updated)
-                && Objects.equals(hash, other.hash);
-    }
-
-    @Override
-    public String toString() {
-        return "Blog [id=" + id
-                + ", title=" + title
-                + ", fileName=" + fileName
-                + ", created=" + created
-                + ", updated=" + updated
-                + ", hash=" + hash + "]";
     }
 }
