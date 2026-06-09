@@ -38,8 +38,9 @@ import io.quarkus.logging.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -223,7 +224,7 @@ public final class MarkdownParser {
      * in case of a failure.
      */
     private static Node parseMarkdownFile(final File file) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
             return MD_PARSER.parseReader(reader);
         } catch (IOException e) {
             Log.warnf(e, "Failed to read markdown file: %s", file);

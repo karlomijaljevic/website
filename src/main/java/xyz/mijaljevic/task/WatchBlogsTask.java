@@ -91,15 +91,15 @@ final class WatchBlogsTask {
     /**
      * Holds the reference to the blogs directory {@link WatchKey}.
      */
-    private static WatchKey WatchKey = null;
+    private static WatchKey watchKey = null;
 
     /**
      * True when the {@link WatchKey} is valid and false otherwise.
      */
-    private static boolean WatchKeyValid = false;
+    private static boolean watchKeyValid = false;
 
     /**
-     * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and
+     * Initializes the class {@link WatchKey} variable <i>watchKey</i> and
      * performs the initial blogs directory check up for new or updated files.
      *
      * <p>
@@ -130,14 +130,14 @@ final class WatchBlogsTask {
         final Path blogsPath = Paths.get(blogsDirectoryPath);
 
         try {
-            WatchKey = blogsPath.register(
+            watchKey = blogsPath.register(
                     watcher,
                     StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE,
                     StandardWatchEventKinds.ENTRY_MODIFY
             );
 
-            WatchKeyValid = WatchKey.isValid();
+            watchKeyValid = watchKey.isValid();
         } catch (IOException e) {
             Log.fatalf(e, "Watch blogs task failed! Does the directory '%s' exist?", blogsDirectoryPath);
             Quarkus.asyncExit();
@@ -180,7 +180,7 @@ final class WatchBlogsTask {
             delayed = "5s"
     )
     void runWatchBlogsTask() {
-        if (!WatchKeyValid) {
+        if (!watchKeyValid) {
             Log.fatal("BLOG - WatchKey NOT valid! Stopping task!");
 
             return;
@@ -189,7 +189,7 @@ final class WatchBlogsTask {
         boolean changeOccurred = false;
         boolean blogCreated = false;
 
-        for (final WatchEvent<?> event : WatchKey.pollEvents()) {
+        for (final WatchEvent<?> event : watchKey.pollEvents()) {
             final WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
@@ -240,7 +240,7 @@ final class WatchBlogsTask {
             RssFeed.updateRssFeed(blogsDirectoryPath);
         }
 
-        WatchKeyValid = WatchKey.reset();
+        watchKeyValid = watchKey.reset();
     }
 
     /**

@@ -193,7 +193,7 @@ public final class StaticFileServer {
 
         Matcher match = IMAGE_NAME_PATTERN.matcher(name);
 
-        if (!match.find()) {
+        if (!match.matches()) {
             return returnBadRequest("The requested image name is NOT in proper format! Provided name: " + name);
         }
 

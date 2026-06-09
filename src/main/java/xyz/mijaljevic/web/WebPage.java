@@ -209,7 +209,7 @@ public final class WebPage {
     @Produces(MediaType.TEXT_HTML)
     public Response getBlogPage(@PathParam("id") final Long id) {
         if (id == null) {
-            throw new BadRequestException("Client tried to find a blog with a null or blank ID!");
+            throw new BadRequestException("Client tried to find a blog with a null ID!");
         }
 
         Blog blog = Website.BLOG_CACHE
@@ -436,7 +436,7 @@ public final class WebPage {
             final Blog blog,
             final String blogsDirectoryPath
     ) throws IOException {
-        // NOTE: Check if it has been synced by a closely called thread
+        // NOTE: Check if it has been synced by a closely timed thread
         final Blog synced = Website.BLOG_CACHE.get(blog.getFileName());
 
         if (synced.getData() != null) {

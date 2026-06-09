@@ -82,15 +82,15 @@ final class WatchImagesTask {
     /**
      * Holds the reference to the images directory {@link WatchKey}.
      */
-    private static WatchKey WatchKey = null;
+    private static WatchKey watchKey = null;
 
     /**
      * True when the {@link WatchKey} is valid and false otherwise.
      */
-    private static boolean WatchKeyValid = false;
+    private static boolean watchKeyValid = false;
 
     /**
-     * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and
+     * Initializes the class {@link WatchKey} variable <i>watchKey</i> and
      * performs the initial images directory check up for new or updated files.
      * It also compares the database images against the files to check which DB
      * image has lost its file if any and then removes the entity from the DB.
@@ -113,14 +113,14 @@ final class WatchImagesTask {
         final Path imagesPath = Paths.get(imagesDirectoryPath);
 
         try {
-            WatchKey = imagesPath.register(
+            watchKey = imagesPath.register(
                     watcher,
                     StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE,
                     StandardWatchEventKinds.ENTRY_MODIFY
             );
 
-            WatchKeyValid = WatchKey.isValid();
+            watchKeyValid = watchKey.isValid();
         } catch (IOException e) {
             Log.fatal("Failed to register images directory with WatchService", e);
             Quarkus.asyncExit();
@@ -162,12 +162,12 @@ final class WatchImagesTask {
             delayed = "5s"
     )
     void runWatchImagesTask() {
-        if (!WatchKeyValid) {
+        if (!watchKeyValid) {
             Log.fatal("IMAGE - WatchKey NOT valid. Stopping task!");
             return;
         }
 
-        for (final WatchEvent<?> event : WatchKey.pollEvents()) {
+        for (final WatchEvent<?> event : watchKey.pollEvents()) {
             final WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
@@ -196,7 +196,7 @@ final class WatchImagesTask {
             }
         }
 
-        WatchKeyValid = WatchKey.reset();
+        watchKeyValid = watchKey.reset();
     }
 
     /**
