@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.web.interceptor;
 
 import jakarta.ws.rs.core.Response;
@@ -36,7 +37,7 @@ import java.net.URI;
 @Provider
 public final class ExceptionInterceptor implements ExceptionMapper<Exception> {
     @Override
-    public Response toResponse(Exception exception) {
+    public Response toResponse(final Exception exception) {
         return Response.seeOther(URI.create("/error/exception")).build();
     }
 }

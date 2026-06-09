@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.web;
 
 import io.smallrye.common.annotation.NonBlocking;
@@ -53,29 +54,63 @@ import java.util.regex.Pattern;
 @PermitAll
 @Path("/static")
 public final class StaticFileServer {
-    @ConfigProperty(
-            name = "application.css",
-            defaultValue = "style.min.css"
-    )
-    String cssPath;
+    /**
+     * Path to the CSS file served by this resource.
+     */
+    private final String cssPath;
 
-    @ConfigProperty(
-            name = "application.javascript",
-            defaultValue = "script.min.js"
-    )
-    String scriptPath;
+    /**
+     * Path to the JavaScript file served by this resource.
+     */
+    private final String scriptPath;
 
-    @ConfigProperty(
-            name = "application.images-directory",
-            defaultValue = "images"
-    )
-    String imagesDirectoryPath;
+    /**
+     * Path to the directory holding served images.
+     */
+    private final String imagesDirectoryPath;
 
-    @ConfigProperty(name = "application.cache-control")
-    String cacheControl;
+    /**
+     * Value of the HTTP <i>Cache-Control</i> header applied to served files.
+     */
+    private final String cacheControl;
 
+    /**
+     * Incoming request headers, used for conditional-request comparisons.
+     */
+    private final HttpHeaders httpHeaders;
+
+    /**
+     * Creates the resource with its configuration and request headers.
+     *
+     * @param cssPath             The path to the CSS file.
+     * @param scriptPath          The path to the JavaScript file.
+     * @param imagesDirectoryPath The path to the images' directory.
+     * @param cacheControl        The HTTP <i>Cache-Control</i> header value.
+     * @param httpHeaders         The incoming request {@link HttpHeaders}.
+     */
     @Inject
-    HttpHeaders httpHeaders;
+    public StaticFileServer(
+            @ConfigProperty(
+                    name = "application.css",
+                    defaultValue = "style.min.css"
+            ) final String cssPath,
+            @ConfigProperty(
+                    name = "application.javascript",
+                    defaultValue = "script.min.js"
+            ) final String scriptPath,
+            @ConfigProperty(
+                    name = "application.images-directory",
+                    defaultValue = "images"
+            ) final String imagesDirectoryPath,
+            @ConfigProperty(name = "application.cache-control") final String cacheControl,
+            final HttpHeaders httpHeaders
+    ) {
+        this.cssPath = cssPath;
+        this.scriptPath = scriptPath;
+        this.imagesDirectoryPath = imagesDirectoryPath;
+        this.cacheControl = cacheControl;
+        this.httpHeaders = httpHeaders;
+    }
 
     /**
      * {@link Pattern} of allowed image file names and extensions.
@@ -97,6 +132,11 @@ public final class StaticFileServer {
      */
     private static final String E_TAG = WebPage.generateEtagHash(Instant.now().toString());
 
+    /**
+     * Serves the CSS file with caching headers.
+     *
+     * @return The CSS file {@link Response}.
+     */
     @GET
     @NonBlocking
     @Path("/style.min.css")
@@ -110,6 +150,11 @@ public final class StaticFileServer {
                 .build();
     }
 
+    /**
+     * Serves the JavaScript file with caching headers.
+     *
+     * @return The JavaScript file {@link Response}.
+     */
     @GET
     @NonBlocking
     @Path("/script.min.js")
@@ -123,6 +168,14 @@ public final class StaticFileServer {
                 .build();
     }
 
+    /**
+     * Serves the requested image by name with caching headers, validating the
+     * name and falling back to a bad-request or not-found response.
+     *
+     * @param name The requested image file name.
+     * @return The image {@link Response}, or an error response if invalid or
+     * missing.
+     */
     @GET
     @NonBlocking
     @Path("/image/{name}")
@@ -133,7 +186,7 @@ public final class StaticFileServer {
             "image/x-icon",
             "application/json"
     })
-    public Response getImage(@PathParam(value = "name") String name) {
+    public Response getImage(@PathParam(value = "name") final String name) {
         if (name.isBlank() || name.contains(File.separator) || name.length() > MAX_IMAGE_NAME_LENGTH) {
             return returnBadRequest("The requested image name is NOT valid! Provided name: " + name);
         }
@@ -192,7 +245,7 @@ public final class StaticFileServer {
      * @return A <b>BAD_REQUEST</b> {@link Response} instance with a
      * {@link JsonObject} entity.
      */
-    private static Response returnBadRequest(String message) {
+    private static Response returnBadRequest(final String message) {
         JsonObject response = new JsonObject();
 
         response.put("message", message);

@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.task;
 
 import io.quarkus.logging.Log;
@@ -85,7 +86,7 @@ final class ClearCacheTask {
                     if (isBefore) {
                         entry.getValue().setData(null);
 
-                        Log.info("Cleared data from cache for blog with file name: " + entry.getKey());
+                        Log.infof("Cleared data from cache for blog with file name: %s", entry.getKey());
                     }
                 });
     }

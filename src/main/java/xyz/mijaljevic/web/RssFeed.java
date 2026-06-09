@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.web;
 
 import io.quarkus.logging.Log;
@@ -51,6 +52,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -59,11 +61,30 @@ import java.util.concurrent.atomic.AtomicReference;
 @PermitAll
 @Path("/rss")
 public final class RssFeed {
-    @ConfigProperty(name = "application.cache-control")
-    String cacheControl;
+    /**
+     * Value of the HTTP <i>Cache-Control</i> header applied to the feed.
+     */
+    private final String cacheControl;
 
+    /**
+     * Incoming request headers, used for conditional-request comparisons.
+     */
+    private final HttpHeaders httpHeaders;
+
+    /**
+     * Creates the resource with its configuration and request headers.
+     *
+     * @param cacheControl The HTTP <i>Cache-Control</i> header value.
+     * @param httpHeaders  The incoming request {@link HttpHeaders}.
+     */
     @Inject
-    HttpHeaders httpHeaders;
+    public RssFeed(
+            @ConfigProperty(name = "application.cache-control") final String cacheControl,
+            final HttpHeaders httpHeaders
+    ) {
+        this.cacheControl = cacheControl;
+        this.httpHeaders = httpHeaders;
+    }
 
     /**
      * Date time format specified by the RSS 2.0 specification (RFC 822).
@@ -90,6 +111,12 @@ public final class RssFeed {
      */
     private static final AtomicReference<Rss> RSS_FEED = new AtomicReference<>(null);
 
+    /**
+     * Serves the RSS feed XML with conditional-request caching headers.
+     *
+     * @return The RSS feed {@link Response}, or a 304 if the client cache is
+     * current.
+     */
     @GET
     @NonBlocking
     @Produces(MediaType.TEXT_XML)
@@ -132,8 +159,11 @@ public final class RssFeed {
      *
      * @param rssFilePath The path to the RSS template file.
      * @return Returns true on success and false on failure.
+     * @throws NullPointerException if {@code rssFilePath} is null.
      */
-    public static boolean initializeRssFeed(String rssFilePath) {
+    public static boolean initializeRssFeed(final String rssFilePath) {
+        Objects.requireNonNull(rssFilePath, "rssFilePath must not be null");
+
         Rss rss = readRssFeed(new File(rssFilePath));
 
         if (rss == null) {
@@ -151,8 +181,11 @@ public final class RssFeed {
      * Updates the items served by the RSS feed.
      *
      * @param blogsDirectoryPath The path to the blogs' directory.
+     * @throws NullPointerException if {@code blogsDirectoryPath} is null.
      */
-    public static void updateRssFeed(String blogsDirectoryPath) {
+    public static void updateRssFeed(final String blogsDirectoryPath) {
+        Objects.requireNonNull(blogsDirectoryPath, "blogsDirectoryPath must not be null");
+
         List<Item> items = new ArrayList<>();
 
         Website.retrieveRecentBlogs().forEach(blog -> {
@@ -221,12 +254,12 @@ public final class RssFeed {
      * @return Returns a {@link Rss} instance. In case the provided file was
      * not an RSS XML the method returns null.
      */
-    private static Rss readRssFeed(File file) {
+    private static Rss readRssFeed(final File file) {
         try {
             Unmarshaller jaxbUnmarshaller = RSS_JAXB_CONTEXT.createUnmarshaller();
             return (Rss) jaxbUnmarshaller.unmarshal(file);
         } catch (JAXBException e) {
-            Log.error("Failed to parse the RSS feed XML file!", e);
+            Log.errorf(e, "Failed to parse the RSS feed XML file: %s", file);
             return null;
         }
     }

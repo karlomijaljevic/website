@@ -20,22 +20,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.dto;
 
-import lombok.Data;
 import xyz.mijaljevic.domain.entity.Blog;
 
 /**
  * A {@link Blog} link model. Used by the website to display blog links which
  * usually showcase only the blog title, created date and ID. This is a simple
- * POJO not an DB entity.
+ * immutable carrier, not a DB entity.
+ *
+ * @param id    The blog identifier.
+ * @param title The blog title.
+ * @param date  The formatted blog creation date.
  */
-@Data
-public final class BlogLink {
-    private Long id;
-    private String title;
-    private String date;
-
+public record BlogLink(Long id, String title, String date) {
     /**
      * Generates a blog link instance from a blog instance.
      *
@@ -43,12 +42,6 @@ public final class BlogLink {
      * @return A {@link BlogLink} instance from the blog.
      */
     public static BlogLink generateBlogLinkFromBlog(final Blog blog) {
-        final BlogLink blogLink = new BlogLink();
-
-        blogLink.setId(blog.getId());
-        blogLink.setTitle(blog.getTitle());
-        blogLink.setDate(blog.parseCreated());
-
-        return blogLink;
+        return new BlogLink(blog.getId(), blog.getTitle(), blog.parseCreated());
     }
 }

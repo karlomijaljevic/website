@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic;
 
 import io.quarkus.runtime.Quarkus;
@@ -30,7 +31,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
  */
 @QuarkusMain
 public final class Main {
-    static void main(String... args) {
+    static void main(final String... args) {
         Quarkus.run(Website.class, args);
     }
 }

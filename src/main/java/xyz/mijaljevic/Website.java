@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic;
 
 import io.quarkus.runtime.Quarkus;
@@ -68,7 +69,7 @@ public final class Website implements QuarkusApplication {
     public static final String HASH_ALGORITHM = "SHA-256";
 
     @Override
-    public int run(String... args) {
+    public int run(final String... args) {
         Quarkus.waitForExit();
 
         return 0;

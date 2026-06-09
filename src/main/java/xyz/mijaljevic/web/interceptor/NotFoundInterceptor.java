@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.web.interceptor;
 
 import jakarta.ws.rs.NotFoundException;
@@ -37,7 +38,7 @@ import java.net.URI;
 @Provider
 public final class NotFoundInterceptor implements ExceptionMapper<NotFoundException> {
     @Override
-    public Response toResponse(NotFoundException exception) {
+    public Response toResponse(final NotFoundException exception) {
         return Response.seeOther(URI.create("/error/not-found")).build();
     }
 }
