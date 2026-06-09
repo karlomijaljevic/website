@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.rss;
 
 import jakarta.xml.bind.annotation.XmlElement;
@@ -32,32 +33,66 @@ import lombok.Data;
 @Data
 @SuppressWarnings("unused")
 public final class Item {
+    /**
+     * Title of the RSS item.
+     */
     private String title;
+
+    /**
+     * Link to the RSS item.
+     */
     private String link;
+
+    /**
+     * Description of the RSS item.
+     */
     private String description;
+
+    /**
+     * Publication date of the RSS item.
+     */
     private String pubDate;
+
+    /**
+     * Globally unique identifier of the RSS item.
+     */
     private String guid;
 
+    /**
+     * @return The title of the RSS item.
+     */
     @XmlElement(name = "title")
     public String getTitle() {
         return title;
     }
 
+    /**
+     * @return The link of the RSS item.
+     */
     @XmlElement(name = "link")
     public String getLink() {
         return link;
     }
 
+    /**
+     * @return The description of the RSS item.
+     */
     @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
 
+    /**
+     * @return The publication date of the RSS item.
+     */
     @XmlElement(name = "pubDate")
     public String getPubDate() {
         return pubDate;
     }
 
+    /**
+     * @return The globally unique identifier of the RSS item.
+     */
     @XmlElement(name = "guid")
     public String getGuid() {
         return guid;

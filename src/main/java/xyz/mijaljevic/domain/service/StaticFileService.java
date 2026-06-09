@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,21 +40,50 @@ import java.util.List;
  */
 @ApplicationScoped
 public class StaticFileService {
-    @Inject
-    EntityManager em;
+    /**
+     * JPA entity manager used for {@link StaticFile} persistence operations.
+     */
+    private final EntityManager em;
 
+    /**
+     * Creates the service with the injected {@link EntityManager}.
+     *
+     * @param em The JPA {@link EntityManager}.
+     */
+    @Inject
+    public StaticFileService(final EntityManager em) {
+        this.em = em;
+    }
+
+    /**
+     * Persists a new static file entity.
+     *
+     * @param staticFile The {@link StaticFile} to persist.
+     */
     @Transactional
-    public void createStaticFile(StaticFile staticFile) {
+    public void createStaticFile(final StaticFile staticFile) {
         em.persist(staticFile);
     }
 
+    /**
+     * Merges an existing static file entity.
+     *
+     * @param staticFile The {@link StaticFile} to update.
+     * @return The merged {@link StaticFile} instance.
+     */
     @Transactional
-    public StaticFile updateStaticFile(StaticFile staticFile) {
+    public StaticFile updateStaticFile(final StaticFile staticFile) {
         return em.merge(staticFile);
     }
 
+    /**
+     * Deletes the static file entity matching the provided file's ID.
+     *
+     * @param staticFile The {@link StaticFile} to delete.
+     * @return {@code true} if exactly one row was deleted.
+     */
     @Transactional
-    public boolean deleteStaticFile(StaticFile staticFile) {
+    public boolean deleteStaticFile(final StaticFile staticFile) {
         final Query query = em.createQuery("delete from static_file where id = :id");
 
         query.setParameter("id", staticFile.getId());
@@ -85,7 +115,13 @@ public class StaticFileService {
         return query.getResultList();
     }
 
-    public StaticFile findFileByName(String name) {
+    /**
+     * Finds a static file by its name.
+     *
+     * @param name The file name to search for.
+     * @return The matching {@link StaticFile}, or {@code null} if none exists.
+     */
+    public StaticFile findFileByName(final String name) {
         final TypedQuery<StaticFile> query = em.createQuery(
                 "select SF from static_file SF where SF.name = :name",
                 StaticFile.class
@@ -95,7 +131,8 @@ public class StaticFileService {
 
         try {
             return query.getSingleResult();
-        } catch (NoResultException e) {
+        } catch (NoResultException noResultException) {
+            // NOTE: No static file matches the name; absence is a normal result.
             return null;
         }
     }

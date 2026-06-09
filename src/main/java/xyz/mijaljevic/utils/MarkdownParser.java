@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.utils;
 
 import org.commonmark.node.FencedCodeBlock;
@@ -33,11 +34,15 @@ import org.commonmark.renderer.html.HtmlNodeRendererContext;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.commonmark.renderer.html.HtmlWriter;
 
+import io.quarkus.logging.Log;
+
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -51,9 +56,9 @@ public final class MarkdownParser {
     private static class BlogAttributeProvider implements AttributeProvider {
         @Override
         public void setAttributes(
-                Node node,
-                String tagName,
-                Map<String, String> attributes
+                final Node node,
+                final String tagName,
+                final Map<String, String> attributes
         ) {
             if (node instanceof Heading heading) {
                 if (heading.getLevel() == 1) {
@@ -72,10 +77,17 @@ public final class MarkdownParser {
      * <code> tags, preserving the original formatting.
      */
     private static class FencedCodeBlockNodeRenderer implements NodeRenderer {
+        /**
+         * Rendering context supplying attribute extension and the writer.
+         */
         private final HtmlNodeRendererContext context;
+
+        /**
+         * Writer used to emit the rendered HTML.
+         */
         private final HtmlWriter html;
 
-        FencedCodeBlockNodeRenderer(HtmlNodeRendererContext context) {
+        FencedCodeBlockNodeRenderer(final HtmlNodeRendererContext context) {
             this.context = context;
             this.html = context.getWriter();
         }
@@ -86,7 +98,7 @@ public final class MarkdownParser {
         }
 
         @Override
-        public void render(Node node) {
+        public void render(final Node node) {
             FencedCodeBlock codeBlock = (FencedCodeBlock) node;
             html.line();
             html.tag(
@@ -142,7 +154,7 @@ public final class MarkdownParser {
     }
 
     private MarkdownParser() {
-        // Utility class
+        // NOTE: Utility class, not meant to be instantiated.
     }
 
     /**
@@ -164,13 +176,21 @@ public final class MarkdownParser {
      * @param file A markdown file to render.
      * @return A {@link String} containing the HTML representation of the
      * provided markdown file or null in case of a failure.
+     * @throws NullPointerException if {@code file} is null.
      */
-    public static String renderMarkdownToHtml(File file) {
-        try {
-            Node document = parseMarkdownFile(file);
+    public static String renderMarkdownToHtml(final File file) {
+        Objects.requireNonNull(file, "file must not be null");
 
+        Node document = parseMarkdownFile(file);
+
+        if (document == null) {
+            return null;
+        }
+
+        try {
             return MD_RENDERER.render(document);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            Log.warnf(e, "Failed to render markdown file to HTML: %s", file);
             return null;
         }
     }
@@ -182,8 +202,11 @@ public final class MarkdownParser {
      * @param file A markdown file to extract the title from.
      * @return A {@link String} containing the title or "Untitled" in case of
      * failure or if no title is found.
+     * @throws NullPointerException if {@code file} is null.
      */
-    public static String getTitleFromFile(File file) {
+    public static String getTitleFromFile(final File file) {
+        Objects.requireNonNull(file, "file must not be null");
+
         Node node = parseMarkdownFile(file);
 
         if (node == null) return "Untitled";
@@ -200,16 +223,11 @@ public final class MarkdownParser {
      * @return A {@link Node} instance representing the markdown file or null
      * in case of a failure.
      */
-    private static Node parseMarkdownFile(File file) {
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-
-            Node document = MD_PARSER.parseReader(reader);
-
-            reader.close();
-
-            return document;
+    private static Node parseMarkdownFile(final File file) {
+        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+            return MD_PARSER.parseReader(reader);
         } catch (IOException e) {
+            Log.warnf(e, "Failed to read markdown file: %s", file);
             return null;
         }
     }

@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.rss;
 
 import jakarta.xml.bind.annotation.XmlAttribute;
@@ -35,11 +36,20 @@ import lombok.Data;
 @SuppressWarnings("unused")
 @XmlRootElement(name = "rss")
 public final class Rss {
+    /**
+     * RSS specification version served by the feed.
+     */
     @XmlAttribute(name = "version")
     public static final String VERSION = "2.0";
 
+    /**
+     * The RSS {@link Channel} of the feed.
+     */
     private Channel channel;
 
+    /**
+     * @return The RSS {@link Channel} of the feed.
+     */
     @XmlElement(name = "channel")
     public Channel getChannel() {
         return channel;

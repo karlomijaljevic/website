@@ -20,9 +20,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.SequenceGenerator;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -44,9 +53,19 @@ public class StaticFile {
      * </ul>
      */
     public enum Type {
-        CSS, IMAGE
+        /**
+         * A CSS stylesheet.
+         */
+        CSS,
+        /**
+         * An image file.
+         */
+        IMAGE
     }
 
+    /**
+     * Primary key of the static file entity.
+     */
     @Id
     @SequenceGenerator(
             name = "staticFileSeq",
@@ -56,6 +75,9 @@ public class StaticFile {
     @GeneratedValue(generator = "staticFileSeq")
     private Long id;
 
+    /**
+     * Name of the static file. Unique and immutable.
+     */
     @Column(
             name = "name",
             unique = true,
@@ -64,18 +86,27 @@ public class StaticFile {
     )
     private String name;
 
+    /**
+     * Content hash used for HTTP <i>ETag</i> caching.
+     */
     @Column(
             name = "hash",
             nullable = false
     )
     private String hash;
 
+    /**
+     * Timestamp set automatically on persist and update.
+     */
     @Column(
             name = "modified",
             nullable = false
     )
     private LocalDateTime modified;
 
+    /**
+     * The {@link Type} of static file (CSS or image).
+     */
     @Column(
             name = "type",
             nullable = false

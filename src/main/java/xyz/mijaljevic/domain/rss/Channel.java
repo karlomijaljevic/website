@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.rss;
 
 import jakarta.xml.bind.annotation.XmlElement;
@@ -36,50 +37,105 @@ import java.util.List;
 @SuppressWarnings("unused")
 @XmlRootElement(name = "channel")
 public final class Channel {
+    /**
+     * Title of the RSS channel.
+     */
     private String title;
+
+    /**
+     * Link of the RSS channel.
+     */
     private String link;
+
+    /**
+     * Description of the RSS channel.
+     */
     private String description;
+
+    /**
+     * Language of the RSS channel.
+     */
     private String language;
+
+    /**
+     * Date the RSS channel was last built.
+     */
     private String lastBuildDate;
+
+    /**
+     * Web master contact of the RSS channel.
+     */
     private String webMaster;
+
+    /**
+     * Atom self-link of the RSS channel.
+     */
     private AtomLink atomLink;
+
+    /**
+     * The {@link Item} entries of the RSS channel.
+     */
     private List<Item> items;
 
+    /**
+     * @return The title of the RSS channel.
+     */
     @XmlElement(name = "title")
     public String getTitle() {
         return title;
     }
 
+    /**
+     * @return The link of the RSS channel.
+     */
     @XmlElement(name = "link")
     public String getLink() {
         return link;
     }
 
+    /**
+     * @return The description of the RSS channel.
+     */
     @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
 
+    /**
+     * @return The language of the RSS channel.
+     */
     @XmlElement(name = "language")
     public String getLanguage() {
         return language;
     }
 
+    /**
+     * @return The date the RSS channel was last built.
+     */
     @XmlElement(name = "lastBuildDate")
     public String getLastBuildDate() {
         return lastBuildDate;
     }
 
+    /**
+     * @return The web master contact of the RSS channel.
+     */
     @XmlElement(name = "webMaster")
     public String getWebMaster() {
         return webMaster;
     }
 
+    /**
+     * @return The {@link Item} entries of the RSS channel.
+     */
     @XmlElement(name = "item")
     public List<Item> getItems() {
         return items;
     }
 
+    /**
+     * @return The Atom self-link of the RSS channel.
+     */
     @XmlElement(
             name = "link",
             namespace = "https://www.w3.org/2005/Atom"

@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.web;
 
 import io.quarkus.logging.Log;
@@ -29,7 +30,12 @@ import io.quarkus.runtime.Quarkus;
 import io.smallrye.common.annotation.NonBlocking;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -49,40 +55,92 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * JAX-RS resource that serves the public HTML pages of the website (home, blog,
+ * blog list, contact and error pages) rendered through Qute templates. Handles
+ * HTTP caching via <i>ETag</i> and <i>Last-Modified</i> headers.
+ */
 @PermitAll
 @Path("/")
 public final class WebPage {
-    @ConfigProperty(name = "application.cache-control")
-    String cacheControl;
+    /**
+     * Value of the HTTP <i>Cache-Control</i> header applied to served pages.
+     */
+    private final String cacheControl;
 
     /**
      * The path to the blogs' directory.
      */
-    @ConfigProperty(
-            name = "application.blogs-directory",
-            defaultValue = "blogs"
-    )
-    String blogsDirectoryPath;
+    private final String blogsDirectoryPath;
 
-    @Inject
-    HttpHeaders httpHeaders;
+    /**
+     * Incoming request headers, used for conditional-request comparisons.
+     */
+    private final HttpHeaders httpHeaders;
 
-    @Inject
-    Template homePage;
+    /**
+     * Qute template for the home page.
+     */
+    private final Template homePage;
 
-    @Inject
-    Template blogPage;
+    /**
+     * Qute template for a single blog page.
+     */
+    private final Template blogPage;
 
-    @Inject
-    Template allBlogsPage;
+    /**
+     * Qute template for the page listing all blogs.
+     */
+    private final Template allBlogsPage;
 
-    @Inject
-    Template contactPage;
+    /**
+     * Qute template for the contact page.
+     */
+    private final Template contactPage;
 
+    /**
+     * Qute template for the error page.
+     */
+    private final Template errorPage;
+
+    /**
+     * Creates the resource with its configuration and injected Qute templates.
+     *
+     * @param cacheControl       The HTTP <i>Cache-Control</i> header value.
+     * @param blogsDirectoryPath The path to the blogs' directory.
+     * @param httpHeaders        The incoming request {@link HttpHeaders}.
+     * @param homePage           The home page template.
+     * @param blogPage           The single blog page template.
+     * @param allBlogsPage       The all blogs listing template.
+     * @param contactPage        The contact page template.
+     * @param errorPage          The error page template.
+     */
     @Inject
-    Template errorPage;
+    public WebPage(
+            @ConfigProperty(name = "application.cache-control") final String cacheControl,
+            @ConfigProperty(
+                    name = "application.blogs-directory",
+                    defaultValue = "blogs"
+            ) final String blogsDirectoryPath,
+            final HttpHeaders httpHeaders,
+            final Template homePage,
+            final Template blogPage,
+            final Template allBlogsPage,
+            final Template contactPage,
+            final Template errorPage
+    ) {
+        this.cacheControl = cacheControl;
+        this.blogsDirectoryPath = blogsDirectoryPath;
+        this.httpHeaders = httpHeaders;
+        this.homePage = homePage;
+        this.blogPage = blogPage;
+        this.allBlogsPage = allBlogsPage;
+        this.contactPage = contactPage;
+        this.errorPage = errorPage;
+    }
 
     /**
      * HTTP <i>Last-Modified</i> date format.
@@ -107,6 +165,11 @@ public final class WebPage {
             generateEtagHash(Instant.now().toString())
     );
 
+    /**
+     * Serves the home page, honouring conditional-request caching headers.
+     *
+     * @return The rendered home page, or a 304 if the client cache is current.
+     */
     @GET
     @NonBlocking
     @Produces(MediaType.TEXT_HTML)
@@ -134,13 +197,19 @@ public final class WebPage {
                 .build();
     }
 
+    /**
+     * Serves a single blog page for the requested blog ID.
+     *
+     * @param id The ID of the blog to render.
+     * @return The rendered blog page, or a 304 if the client cache is current.
+     */
     @GET
     @NonBlocking
     @Path("/blog/{id}")
     @Produces(MediaType.TEXT_HTML)
-    public Response getBlogPage(@PathParam("id") Long id) {
+    public Response getBlogPage(@PathParam("id") final Long id) {
         if (id == null) {
-            throw new BadRequestException("Client tried to find a blog with a null or blank ID!");
+            throw new BadRequestException("Client tried to find a blog with a null ID!");
         }
 
         Blog blog = Website.BLOG_CACHE
@@ -172,9 +241,9 @@ public final class WebPage {
             try {
                 blog = syncBlogData(blog, blogsDirectoryPath);
             } catch (IOException e) {
-                Log.error("Failed to display the blog with id " + id, e);
+                Log.errorf(e, "Failed to display the blog with id %s", id);
 
-                throw new IllegalStateException("Page rendering for blog with ID " + id + " failed!");
+                throw new IllegalStateException("Page rendering for blog with ID " + id + " failed!", e);
             }
         }
 
@@ -192,6 +261,11 @@ public final class WebPage {
                 .build();
     }
 
+    /**
+     * Serves the page listing all blogs, sorted, honouring caching headers.
+     *
+     * @return The rendered blog list, or a 304 if the client cache is current.
+     */
     @GET
     @NonBlocking
     @Path("/blogs")
@@ -221,6 +295,12 @@ public final class WebPage {
                 .build();
     }
 
+    /**
+     * Serves the contact page, honouring conditional-request caching headers.
+     *
+     * @return The rendered contact page, or a 304 if the client cache is
+     * current.
+     */
     @GET
     @NonBlocking
     @Path("/contact")
@@ -243,11 +323,17 @@ public final class WebPage {
                 .build();
     }
 
+    /**
+     * Serves the error page for the supplied reason code.
+     *
+     * @param reason The error reason path segment (e.g. {@code not-found}).
+     * @return The rendered error page, or a 304 if the client cache is current.
+     */
     @GET
     @NonBlocking
     @Path("/error/{reason}")
     @Produces(MediaType.TEXT_HTML)
-    public Response getErrorPage(@PathParam("reason") String reason) {
+    public Response getErrorPage(@PathParam("reason") final String reason) {
         String eTag = E_TAG.getOpaque();
         String lastModified = LAST_MODIFIED.getOpaque();
 
@@ -290,7 +376,7 @@ public final class WebPage {
      * @return An HTTP <i>Last-Modified</i> header {@link String}.
      */
     static String parseLastModifiedTime(
-            LocalDateTime lastModifiedTime
+            final LocalDateTime lastModifiedTime
     ) {
         return lastModifiedTime.atZone(Website.TIME_ZONE).format(LM_FORMAT);
     }
@@ -300,18 +386,17 @@ public final class WebPage {
      *
      * @param string A {@link String} to turn into an ETag hash.
      * @return Returns a hexadecimal hash from the provided string.
+     * @throws NullPointerException if {@code string} is null.
      */
-    static String generateEtagHash(String string) {
-        if (string == null) {
-            throw new NullPointerException("Provided string for E_TAG hash is null!");
-        }
+    static String generateEtagHash(final String string) {
+        Objects.requireNonNull(string, "string for E_TAG hash must not be null");
 
         MessageDigest digest = null;
 
         try {
             digest = MessageDigest.getInstance(Website.HASH_ALGORITHM);
         } catch (NoSuchAlgorithmException e) {
-            Log.fatal("Missing hashing algorithm: " + Website.HASH_ALGORITHM, e);
+            Log.fatalf(e, "Missing hashing algorithm: %s", Website.HASH_ALGORITHM);
             Quarkus.asyncExit();
         }
 
@@ -348,11 +433,11 @@ public final class WebPage {
      *                     file.
      */
     private static synchronized Blog syncBlogData(
-            Blog blog,
-            String blogsDirectoryPath
+            final Blog blog,
+            final String blogsDirectoryPath
     ) throws IOException {
-        // Check if it has been synced by a close called thread
-        Blog synced = Website.BLOG_CACHE.get(blog.getFileName());
+        // NOTE: Check if it has been synced by a closely timed thread
+        final Blog synced = Website.BLOG_CACHE.get(blog.getFileName());
 
         if (synced.getData() != null) {
             return synced;
@@ -385,7 +470,7 @@ public final class WebPage {
      * ones in the injected {@link HttpHeaders} instance the method returns
      * true.
      */
-    private boolean isResourceSame(String etag, String lastModified) {
+    private boolean isResourceSame(final String etag, final String lastModified) {
         String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
         String ifModifiedSince = httpHeaders.getHeaderString(HttpHeaders.IF_MODIFIED_SINCE);
 

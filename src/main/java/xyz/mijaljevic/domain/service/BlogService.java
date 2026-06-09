@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,19 +39,48 @@ import java.util.List;
  */
 @ApplicationScoped
 public final class BlogService {
-    @Inject
-    EntityManager em;
+    /**
+     * JPA entity manager used for {@link Blog} persistence operations.
+     */
+    private final EntityManager em;
 
+    /**
+     * Creates the service with the injected {@link EntityManager}.
+     *
+     * @param em The JPA {@link EntityManager}.
+     */
+    @Inject
+    public BlogService(final EntityManager em) {
+        this.em = em;
+    }
+
+    /**
+     * Persists a new blog entity.
+     *
+     * @param blog The {@link Blog} to persist.
+     */
     @Transactional
     public void createBlog(final Blog blog) {
         em.persist(blog);
     }
 
+    /**
+     * Merges an existing blog entity.
+     *
+     * @param blog The {@link Blog} to update.
+     * @return The merged {@link Blog} instance.
+     */
     @Transactional
     public Blog updateBlog(final Blog blog) {
         return em.merge(blog);
     }
 
+    /**
+     * Deletes the blog entity matching the provided blog's ID.
+     *
+     * @param blog The {@link Blog} to delete.
+     * @return {@code true} if exactly one row was deleted.
+     */
     @Transactional
     public boolean deleteBlog(final Blog blog) {
         final Query query = em.createQuery("delete from blog where id = :id");
@@ -81,6 +111,12 @@ public final class BlogService {
         return query.getResultList();
     }
 
+    /**
+     * Finds a blog by its file name.
+     *
+     * @param fileName The file name to search for.
+     * @return The matching {@link Blog}, or {@code null} if none exists.
+     */
     public Blog findBlogByFileName(final String fileName) {
         final TypedQuery<Blog> query = em.createQuery(
                 "select B from blog B where B.fileName = :fileName",
@@ -91,7 +127,8 @@ public final class BlogService {
 
         try {
             return query.getSingleResult();
-        } catch (NoResultException e) {
+        } catch (NoResultException noResultException) {
+            // NOTE: No blog matches the file name; absence is a normal result.
             return null;
         }
     }

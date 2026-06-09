@@ -20,9 +20,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Transient;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -51,6 +59,9 @@ public class Blog implements Comparable<Blog> {
      */
     private static final DateTimeFormatter WEBSITE_DATE_PATTERN = DateTimeFormatter.ofPattern("dd-MMM-uuuu");
 
+    /**
+     * Primary key of the blog entity.
+     */
     @Id
     @SequenceGenerator(
             name = "blogSeq",
@@ -60,6 +71,9 @@ public class Blog implements Comparable<Blog> {
     @GeneratedValue(generator = "blogSeq")
     private Long id;
 
+    /**
+     * Title of the blog. Unique and not nullable.
+     */
     @Column(
             name = "title",
             nullable = false,
@@ -67,6 +81,9 @@ public class Blog implements Comparable<Blog> {
     )
     private String title;
 
+    /**
+     * Name of the source file backing the blog. Unique and immutable.
+     */
     @Column(
             name = "file_name",
             nullable = false,
@@ -75,12 +92,18 @@ public class Blog implements Comparable<Blog> {
     )
     private String fileName;
 
+    /**
+     * Content hash used for HTTP <i>ETag</i> caching.
+     */
     @Column(
             name = "hash",
             nullable = false
     )
     private String hash;
 
+    /**
+     * Timestamp set automatically when the entity is first persisted.
+     */
     @Column(
             name = "created",
             nullable = false,
@@ -88,12 +111,21 @@ public class Blog implements Comparable<Blog> {
     )
     private LocalDateTime created;
 
+    /**
+     * Timestamp set automatically whenever the entity is updated.
+     */
     @Column(name = "updated")
     private LocalDateTime updated;
 
+    /**
+     * Transient timestamp of the last time the blog was read from cache.
+     */
     @Transient
     private LocalDateTime lastRead;
 
+    /**
+     * Transient rendered HTML body of the blog, lazily populated.
+     */
     @Transient
     private String data;
 
@@ -122,7 +154,7 @@ public class Blog implements Comparable<Blog> {
     }
 
     @Override
-    public int compareTo(Blog other) {
+    public int compareTo(final Blog other) {
         if (created.isBefore(other.created)) {
             return 1;
         } else if (created.isEqual(other.created)) {

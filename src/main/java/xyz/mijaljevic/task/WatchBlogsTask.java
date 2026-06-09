@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.task;
 
 import io.quarkus.logging.Log;
@@ -39,7 +40,13 @@ import xyz.mijaljevic.web.WebPage;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,30 +66,40 @@ import java.util.List;
  */
 @ApplicationScoped
 final class WatchBlogsTask {
-    @Inject
-    BlogService blogService;
+    /**
+     * The service that handles the {@link Blog} entity CRUD operations.
+     */
+    private final BlogService blogService;
 
     /**
      * The path to the blogs' directory.
      */
-    @ConfigProperty(
-            name = "application.blogs-directory",
-            defaultValue = "blogs"
-    )
-    String blogsDirectoryPath;
+    private final String blogsDirectoryPath;
+
+    @Inject
+    WatchBlogsTask(
+            final BlogService blogService,
+            @ConfigProperty(
+                    name = "application.blogs-directory",
+                    defaultValue = "blogs"
+            ) final String blogsDirectoryPath
+    ) {
+        this.blogService = blogService;
+        this.blogsDirectoryPath = blogsDirectoryPath;
+    }
 
     /**
      * Holds the reference to the blogs directory {@link WatchKey}.
      */
-    private static WatchKey WatchKey = null;
+    private static WatchKey watchKey = null;
 
     /**
      * True when the {@link WatchKey} is valid and false otherwise.
      */
-    private static boolean WatchKeyValid = false;
+    private static boolean watchKeyValid = false;
 
     /**
-     * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and
+     * Initializes the class {@link WatchKey} variable <i>watchKey</i> and
      * performs the initial blogs directory check up for new or updated files.
      *
      * <p>
@@ -102,7 +119,7 @@ final class WatchBlogsTask {
         try {
             watcher = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
-            Log.fatal("Watch blogs task failed to initialize WatchService!");
+            Log.fatal("Watch blogs task failed to initialize WatchService!", e);
             Quarkus.asyncExit();
         }
 
@@ -113,16 +130,16 @@ final class WatchBlogsTask {
         final Path blogsPath = Paths.get(blogsDirectoryPath);
 
         try {
-            WatchKey = blogsPath.register(
+            watchKey = blogsPath.register(
                     watcher,
                     StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE,
                     StandardWatchEventKinds.ENTRY_MODIFY
             );
 
-            WatchKeyValid = WatchKey.isValid();
+            watchKeyValid = watchKey.isValid();
         } catch (IOException e) {
-            Log.fatal("Watch blogs task failed! Does the directory exist?");
+            Log.fatalf(e, "Watch blogs task failed! Does the directory '%s' exist?", blogsDirectoryPath);
             Quarkus.asyncExit();
         }
 
@@ -142,7 +159,7 @@ final class WatchBlogsTask {
         final List<Blog> blogs = blogService.listAllBlogsMissingFromFileNames(fileNames);
 
         for (Blog blog : blogs) {
-            Log.warn("Found blog without file. Deleting file: " + blog.getFileName());
+            Log.warnf("Found blog without file. Deleting file: %s", blog.getFileName());
 
             blogService.deleteBlog(blog);
         }
@@ -163,7 +180,7 @@ final class WatchBlogsTask {
             delayed = "5s"
     )
     void runWatchBlogsTask() {
-        if (!WatchKeyValid) {
+        if (!watchKeyValid) {
             Log.fatal("BLOG - WatchKey NOT valid! Stopping task!");
 
             return;
@@ -172,7 +189,7 @@ final class WatchBlogsTask {
         boolean changeOccurred = false;
         boolean blogCreated = false;
 
-        for (final WatchEvent<?> event : WatchKey.pollEvents()) {
+        for (final WatchEvent<?> event : watchKey.pollEvents()) {
             final WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
@@ -190,7 +207,7 @@ final class WatchBlogsTask {
             final File file = blogsPath.resolve(filename).toFile();
 
             if (!isMarkdownFile(file)) {
-                Log.warn("BLOG - Not a markdown file: " + file.getName());
+                Log.warnf("BLOG - Not a markdown file: %s", file.getName());
                 continue;
             }
 
@@ -203,13 +220,13 @@ final class WatchBlogsTask {
 
                 if (blog != null && blogService.deleteBlog(blog)) {
                     Website.BLOG_CACHE.remove(blog.getFileName());
-                    Log.info("Successfully deleted blog of file: " + file.getName());
+                    Log.infof("Successfully deleted blog of file: %s", file.getName());
                 }
             }
 
             changeOccurred = true;
 
-            // For the RSS FEED update
+            // NOTE: Track new-blog creation to trigger the RSS feed update.
             if (!blogCreated) {
                 blogCreated = kind == StandardWatchEventKinds.ENTRY_CREATE;
             }
@@ -223,7 +240,7 @@ final class WatchBlogsTask {
             RssFeed.updateRssFeed(blogsDirectoryPath);
         }
 
-        WatchKeyValid = WatchKey.reset();
+        watchKeyValid = watchKey.reset();
     }
 
     /**
@@ -254,7 +271,7 @@ final class WatchBlogsTask {
             final String hash = TaskUtils.hashFile(file);
             blog.setHash(hash);
         } catch (NoSuchAlgorithmException | IOException e) {
-            Log.error("Failed to hash file " + blog.getFileName() + " with algorithm " + Website.HASH_ALGORITHM);
+            Log.errorf(e, "Failed to hash file %s with algorithm %s", blog.getFileName(), Website.HASH_ALGORITHM);
             return false;
         }
 
@@ -262,12 +279,12 @@ final class WatchBlogsTask {
             blog.setFileName(file.getName());
             blogService.createBlog(blog);
             blog = blogService.findBlogByFileName(file.getName());
-            Log.info("Successfully created blog for file: " + file.getName());
+            Log.infof("Successfully created blog for file: %s", file.getName());
         } else {
-            // In case no actual file changes have occurred.
+            // NOTE: Skip persisting when no actual file changes have occurred.
             if (!blog.getHash().equals(oldHash)) {
                 blog = blogService.updateBlog(blog);
-                Log.info("Successfully updated blog for file: " + file.getName());
+                Log.infof("Successfully updated blog for file: %s", file.getName());
             }
         }
 

@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic;
 
 import io.quarkus.logging.Log;
@@ -27,6 +28,7 @@ import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.web.RssFeed;
 
@@ -41,30 +43,45 @@ final class LifecycleHandler {
     /**
      * The path to the blogs' directory.
      */
-    @ConfigProperty(
-            name = "application.blogs-directory",
-            defaultValue = "blogs"
-    )
-    String blogsDirectoryPath;
+    private final String blogsDirectoryPath;
 
     /**
      * The path to the images' directory.
      */
-    @ConfigProperty(
-            name = "application.images-directory",
-            defaultValue = "static/images"
-    )
-    String imagesDirectoryPath;
+    private final String imagesDirectoryPath;
 
     /**
      * The path to the RSS feed file. Configured using the
      * "application.rss-feed" property.
      */
-    @ConfigProperty(
-            name = "application.rss-feed",
-            defaultValue = "static/rss.xml"
-    )
-    String rssFilePath;
+    private final String rssFilePath;
+
+    /**
+     * Creates the handler with its configured directory and RSS feed paths.
+     *
+     * @param blogsDirectoryPath  The path to the blogs' directory.
+     * @param imagesDirectoryPath The path to the images' directory.
+     * @param rssFilePath         The path to the RSS feed file.
+     */
+    @Inject
+    LifecycleHandler(
+            @ConfigProperty(
+                    name = "application.blogs-directory",
+                    defaultValue = "blogs"
+            ) final String blogsDirectoryPath,
+            @ConfigProperty(
+                    name = "application.images-directory",
+                    defaultValue = "static/images"
+            ) final String imagesDirectoryPath,
+            @ConfigProperty(
+                    name = "application.rss-feed",
+                    defaultValue = "static/rss.xml"
+            ) final String rssFilePath
+    ) {
+        this.blogsDirectoryPath = blogsDirectoryPath;
+        this.imagesDirectoryPath = imagesDirectoryPath;
+        this.rssFilePath = rssFilePath;
+    }
 
     /**
      * This method is called when the application starts. It configures the
@@ -72,7 +89,7 @@ final class LifecycleHandler {
      *
      * @param event The startup event.
      */
-    void onStart(@Observes StartupEvent event) {
+    void onStart(@Observes final StartupEvent event) {
         Path path = configureDirectory(blogsDirectoryPath);
         if (path == null) {
             Log.fatal("The blogs directory could not be created.");
@@ -107,13 +124,13 @@ final class LifecycleHandler {
         final File directory = new File(path);
 
         if (!directory.exists()) {
-            Log.warn("The '" + path + "' directory does not exist. Creating one now.");
+            Log.warnf("The '%s' directory does not exist. Creating one now.", path);
 
             if (!directory.mkdirs()) {
                 return null;
             }
 
-            Log.info("The '" + path + "' directory was created.");
+            Log.infof("The '%s' directory was created.", path);
         }
 
         return directory.toPath();

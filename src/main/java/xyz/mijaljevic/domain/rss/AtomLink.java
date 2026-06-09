@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.domain.rss;
 
 import jakarta.xml.bind.annotation.XmlAttribute;
@@ -37,20 +38,40 @@ import lombok.Data;
         namespace = "https://www.w3.org/2005/Atom"
 )
 public final class AtomLink {
+    /**
+     * Value of the <i>href</i> attribute.
+     */
     private String href;
+
+    /**
+     * Value of the <i>rel</i> attribute.
+     */
     private String rel;
+
+    /**
+     * Value of the <i>type</i> attribute.
+     */
     private String type;
 
+    /**
+     * @return The value of the <i>href</i> attribute.
+     */
     @XmlAttribute(name = "href")
     public String getHref() {
         return href;
     }
 
+    /**
+     * @return The value of the <i>rel</i> attribute.
+     */
     @XmlAttribute(name = "rel")
     public String getRel() {
         return rel;
     }
 
+    /**
+     * @return The value of the <i>type</i> attribute.
+     */
     @XmlAttribute(name = "type")
     public String getType() {
         return type;

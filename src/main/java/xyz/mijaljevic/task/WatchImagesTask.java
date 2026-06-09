@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.task;
 
 import io.quarkus.logging.Log;
@@ -37,7 +38,13 @@ import xyz.mijaljevic.utils.TaskUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,30 +60,37 @@ final class WatchImagesTask {
     /**
      * The service that handles the {@link StaticFile} entity CRUD operations.
      */
-    @Inject
-    StaticFileService staticFileService;
+    private final StaticFileService staticFileService;
 
     /**
      * The path to the images' directory.
      */
-    @ConfigProperty(
-            name = "application.images-directory",
-            defaultValue = "static/images"
-    )
-    String imagesDirectoryPath;
+    private final String imagesDirectoryPath;
+
+    @Inject
+    WatchImagesTask(
+            final StaticFileService staticFileService,
+            @ConfigProperty(
+                    name = "application.images-directory",
+                    defaultValue = "static/images"
+            ) final String imagesDirectoryPath
+    ) {
+        this.staticFileService = staticFileService;
+        this.imagesDirectoryPath = imagesDirectoryPath;
+    }
 
     /**
      * Holds the reference to the images directory {@link WatchKey}.
      */
-    private static WatchKey WatchKey = null;
+    private static WatchKey watchKey = null;
 
     /**
      * True when the {@link WatchKey} is valid and false otherwise.
      */
-    private static boolean WatchKeyValid = false;
+    private static boolean watchKeyValid = false;
 
     /**
-     * Initializes the class {@link WatchKey} variable <i>WatchKey</i> and
+     * Initializes the class {@link WatchKey} variable <i>watchKey</i> and
      * performs the initial images directory check up for new or updated files.
      * It also compares the database images against the files to check which DB
      * image has lost its file if any and then removes the entity from the DB.
@@ -99,14 +113,14 @@ final class WatchImagesTask {
         final Path imagesPath = Paths.get(imagesDirectoryPath);
 
         try {
-            WatchKey = imagesPath.register(
+            watchKey = imagesPath.register(
                     watcher,
                     StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE,
                     StandardWatchEventKinds.ENTRY_MODIFY
             );
 
-            WatchKeyValid = WatchKey.isValid();
+            watchKeyValid = watchKey.isValid();
         } catch (IOException e) {
             Log.fatal("Failed to register images directory with WatchService", e);
             Quarkus.asyncExit();
@@ -133,7 +147,7 @@ final class WatchImagesTask {
         for (StaticFile file : staticFiles) {
             staticFileService.deleteStaticFile(file);
 
-            Log.info("Found image without file. Deleting file: " + file.getName());
+            Log.infof("Found image without file. Deleting file: %s", file.getName());
         }
     }
 
@@ -148,12 +162,12 @@ final class WatchImagesTask {
             delayed = "5s"
     )
     void runWatchImagesTask() {
-        if (!WatchKeyValid) {
+        if (!watchKeyValid) {
             Log.fatal("IMAGE - WatchKey NOT valid. Stopping task!");
             return;
         }
 
-        for (final WatchEvent<?> event : WatchKey.pollEvents()) {
+        for (final WatchEvent<?> event : watchKey.pollEvents()) {
             final WatchEvent.Kind<?> kind = event.kind();
 
             if (kind == StandardWatchEventKinds.OVERFLOW) {
@@ -177,22 +191,23 @@ final class WatchImagesTask {
 
                 if (staticFile != null && staticFileService.deleteStaticFile(staticFile)) {
                     Website.STATIC_CACHE.remove(staticFile.getName());
-                    Log.info("Successfully deleted image of file: " + file.getName());
+                    Log.infof("Successfully deleted image of file: %s", file.getName());
                 }
             }
         }
 
-        WatchKeyValid = WatchKey.reset();
+        watchKeyValid = watchKey.reset();
     }
 
     /**
      * Consumes the provided {@link StaticFile} {@link File} and either updates or
      * creates an image entity depending on the state of the image file against the
-     * entity in the DB.
+     * entity in the DB. If hashing the file fails the entity is left untouched
+     * and the method returns without persisting a partially updated entity.
      *
      * @param file Image file to consume.
      */
-    private void consumeImageFile(File file) {
+    private void consumeImageFile(final File file) {
         boolean isNew = false;
         StaticFile staticFile = staticFileService.findFileByName(file.getName());
 
@@ -207,11 +222,8 @@ final class WatchImagesTask {
             final String hash = TaskUtils.hashFile(file);
             staticFile.setHash(hash);
         } catch (NoSuchAlgorithmException | IOException e) {
-            Log.error("Failed to hash file "
-                    + staticFile.getName()
-                    + " with algorithm "
-                    + Website.HASH_ALGORITHM
-            );
+            Log.errorf(e, "Failed to hash file %s with algorithm %s", staticFile.getName(), Website.HASH_ALGORITHM);
+            return;
         }
 
         if (isNew) {
@@ -219,12 +231,12 @@ final class WatchImagesTask {
             staticFile.setType(Type.IMAGE);
             staticFileService.createStaticFile(staticFile);
             staticFile = staticFileService.findFileByName(file.getName());
-            Log.info("Successfully created image for file: " + file.getName());
+            Log.infof("Successfully created image for file: %s", file.getName());
         } else {
-            // In case no actual file changes have occurred.
+            // NOTE: Skip persisting when no actual file changes have occurred.
             if (!staticFile.getHash().equals(oldHash)) {
                 staticFile = staticFileService.updateStaticFile(staticFile);
-                Log.info("Successfully updated image for file: " + file.getName());
+                Log.infof("Successfully updated image for file: %s", file.getName());
             }
         }
 

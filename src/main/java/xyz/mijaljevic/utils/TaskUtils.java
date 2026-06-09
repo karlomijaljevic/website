@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * </p>
  */
+
 package xyz.mijaljevic.utils;
 
 import xyz.mijaljevic.Website;
@@ -30,6 +31,7 @@ import java.math.BigInteger;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Objects;
 
 /**
  * Functional helper class for file related operations.
@@ -47,10 +49,13 @@ public final class TaskUtils {
      * @throws NoSuchAlgorithmException in case it failed to find the algorithm
      *                                  specified by the <i>FILE_HASH_ALGO</i>
      *                                  variable.
+     * @throws NullPointerException     if {@code file} is null.
      */
     public static String hashFile(
-            File file
+            final File file
     ) throws IOException, NoSuchAlgorithmException {
+        Objects.requireNonNull(file, "file must not be null");
+
         byte[] data = Files.readAllBytes(file.toPath());
 
         byte[] hash = MessageDigest.getInstance(Website.HASH_ALGORITHM)
