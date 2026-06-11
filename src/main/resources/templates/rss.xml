@@ -4,7 +4,7 @@
 <rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom">
 	<channel>
 		<title>Karlo Mijaljević</title>
-		<link>https://karlo.mijaljevic.xyz</link>
+		<link>https://mijaljevic.xyz</link>
 		<description>Recent blogs from Karlo Mijaljević.</description>
 		<language>en</language>
 		<lastBuildDate>{lastBuildDate}</lastBuildDate>
