@@ -88,15 +88,25 @@ public class BlogCache {
     }
 
     /**
-     * Removes the blog with the provided file name from both indexes.
+     * Removes the blog with the provided file name from both indexes. If the
+     * removed blog owned its slug mapping, the slug is reassigned to another
+     * remaining blog with the same slug, if any.
      *
      * @param fileName The file name of the blog to remove.
      */
     public void removeByFileName(final String fileName) {
         final Blog removed = byFileName.remove(fileName);
 
-        if (removed != null) {
-            bySlug.remove(removed.getSlug(), removed);
+        if (removed == null) {
+            return;
+        }
+
+        if (bySlug.remove(removed.getSlug(), removed)) {
+            byFileName.values()
+                    .stream()
+                    .filter(blog -> blog.getSlug().equals(removed.getSlug()))
+                    .findFirst()
+                    .ifPresent(blog -> bySlug.put(blog.getSlug(), blog));
         }
     }
 
