@@ -207,6 +207,16 @@
 				<skipITs>false</skipITs>
 				<quarkus.native.enabled>true</quarkus.native.enabled>
 				<!--
+					maven.compiler.release is 25, so the native-image binary
+					embedded in the builder container must also be JDK 25-based.
+					The default Mandrel builder image for this Quarkus version is
+					still JDK 21-based, which fails CI's container build
+					(`-Dquarkus.native.container-build=true`) with
+					UnsupportedClassVersionError (class file 69 vs 65). Pin the
+					JDK 25 Mandrel builder image; only used for container builds.
+				-->
+				<quarkus.native.builder-image>quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25</quarkus.native.builder-image>
+				<!--
 					brotli4j (pulled transitively via netty/vertx compression)
 					calls java.lang.System::loadLibrary, a restricted method.
 					Enabling native access silences the build warning and stays
