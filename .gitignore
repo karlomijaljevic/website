@@ -13,6 +13,4 @@ target/
 blogs/
 static/images/
 !static/images/favicon.ico
-website.mv.db
-website.trace.db
 .env

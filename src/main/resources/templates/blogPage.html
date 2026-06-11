@@ -1,4 +1,5 @@
 {@java.lang.String title}
+{@java.lang.String data}
 {@xyz.mijaljevic.domain.entity.Blog blog}
 <!doctype html>
 <!--Hello there page inspector. In case you find any errors/issues-->
@@ -8,7 +9,7 @@
 	{#include core/head /}
 	<body>
 		{#include core/header /}
-		{blog.data.raw}
+		{data.raw}
 		<div id="blog-metadata">
 			<span class="blog-medatada-date">Created at: {blog.parseCreated()}</span>
 			{#if !blog.parseUpdated().isEmpty()}

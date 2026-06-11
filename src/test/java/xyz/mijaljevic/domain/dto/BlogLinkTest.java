@@ -32,16 +32,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BlogLinkTest {
     @Test
-    @DisplayName("generateBlogLinkFromBlog copies id and title and formats the created date")
-    void generateBlogLinkFromBlog_mapsIdTitleAndFormattedDate() {
+    @DisplayName("generateBlogLinkFromBlog copies slug and title and formats the created date")
+    void generateBlogLinkFromBlog_mapsSlugTitleAndFormattedDate() {
         Blog blog = new Blog();
-        blog.setId(42L);
+        blog.setSlug("my-first-post");
         blog.setTitle("My First Post");
         blog.setCreated(LocalDateTime.of(2026, 3, 5, 13, 30));
 
         BlogLink link = BlogLink.generateBlogLinkFromBlog(blog);
 
-        assertThat(link.id()).isEqualTo(42L);
+        assertThat(link.slug()).isEqualTo("my-first-post");
         assertThat(link.title()).isEqualTo("My First Post");
         // Blog.parseCreated() formats with the "dd-MMM-uuuu" pattern; the month
         // abbreviation is locale-dependent, so assert the structure (zero-padded
@@ -52,8 +52,8 @@ class BlogLinkTest {
     @Test
     @DisplayName("two BlogLinks with the same components are equal (record value semantics)")
     void blogLink_isValueEqual() {
-        BlogLink a = new BlogLink(1L, "Title", "01-Jan-2026");
-        BlogLink b = new BlogLink(1L, "Title", "01-Jan-2026");
+        BlogLink a = new BlogLink("title", "Title", "01-Jan-2026");
+        BlogLink b = new BlogLink("title", "Title", "01-Jan-2026");
 
         assertThat(a).isEqualTo(b);
         assertThat(a).hasSameHashCodeAs(b);

@@ -35,7 +35,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import xyz.mijaljevic.Website;
+import xyz.mijaljevic.cache.StaticFileCache;
 import xyz.mijaljevic.domain.entity.StaticFile;
 
 import java.io.File;
@@ -75,6 +75,11 @@ public final class StaticFileServer {
     private final String cacheControl;
 
     /**
+     * The in-memory cache that is the single source of truth for static files.
+     */
+    private final StaticFileCache staticFileCache;
+
+    /**
      * Incoming request headers, used for conditional-request comparisons.
      */
     private final HttpHeaders httpHeaders;
@@ -86,6 +91,7 @@ public final class StaticFileServer {
      * @param scriptPath          The path to the JavaScript file.
      * @param imagesDirectoryPath The path to the images' directory.
      * @param cacheControl        The HTTP <i>Cache-Control</i> header value.
+     * @param staticFileCache     The in-memory static file cache.
      * @param httpHeaders         The incoming request {@link HttpHeaders}.
      */
     @Inject
@@ -103,12 +109,14 @@ public final class StaticFileServer {
                     defaultValue = "images"
             ) final String imagesDirectoryPath,
             @ConfigProperty(name = "application.cache-control") final String cacheControl,
+            final StaticFileCache staticFileCache,
             final HttpHeaders httpHeaders
     ) {
         this.cssPath = cssPath;
         this.scriptPath = scriptPath;
         this.imagesDirectoryPath = imagesDirectoryPath;
         this.cacheControl = cacheControl;
+        this.staticFileCache = staticFileCache;
         this.httpHeaders = httpHeaders;
     }
 
@@ -197,12 +205,7 @@ public final class StaticFileServer {
             return returnBadRequest("The requested image name is NOT in proper format! Provided name: " + name);
         }
 
-        StaticFile staticFile = Website.STATIC_CACHE
-                .values()
-                .stream()
-                .filter(value -> value.getName().equals(name))
-                .findFirst()
-                .orElse(null);
+        StaticFile staticFile = staticFileCache.byName(name);
 
         if (staticFile == null) {
             return returnBadRequest("Client tried to find a image with an unknown name!");

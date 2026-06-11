@@ -23,6 +23,7 @@
 
 package xyz.mijaljevic.web.interceptor;
 
+import io.quarkus.logging.Log;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -38,6 +39,8 @@ import java.net.URI;
 public final class ExceptionInterceptor implements ExceptionMapper<Exception> {
     @Override
     public Response toResponse(final Exception exception) {
+        Log.error("Unhandled exception while serving a request.", exception);
+
         return Response.seeOther(URI.create("/error/exception")).build();
     }
 }

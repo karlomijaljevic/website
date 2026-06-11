@@ -21,17 +21,18 @@
  * </p>
  */
 
-package xyz.mijaljevic.task;
+package xyz.mijaljevic.scheduler;
 
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.Quarkus;
+import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import xyz.mijaljevic.DirectoryProvisioner;
 import xyz.mijaljevic.Website;
-import xyz.mijaljevic.domain.service.StaticFileService;
+import xyz.mijaljevic.cache.StaticFileCache;
 import xyz.mijaljevic.domain.entity.StaticFile;
 import xyz.mijaljevic.domain.entity.StaticFile.Type;
 import xyz.mijaljevic.utils.TaskUtils;
@@ -39,44 +40,54 @@ import xyz.mijaljevic.utils.TaskUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class contains a scheduled method that runs every 5 minutes and checks the
+ * Scheduler that contains a scheduled method that runs every 5 minutes and
+ * checks the
  * {@link WatchKey} that was initialized during class creation. The key
- * monitors the images directory and creates/updates/deletes entries in the DB
- * accordingly.
+ * monitors the images directory and creates/updates/deletes entries in the
+ * {@link StaticFileCache} accordingly.
  */
+@Startup
 @ApplicationScoped
-final class WatchImagesTask {
+final class ImageScheduler {
     /**
-     * The service that handles the {@link StaticFile} entity CRUD operations.
+     * The in-memory cache that is the single source of truth for static files.
      */
-    private final StaticFileService staticFileService;
+    private final StaticFileCache staticFileCache;
 
     /**
-     * The path to the images' directory.
+     * Provisions and exposes the watched images directory. Injecting it makes
+     * directory creation a CDI dependency of this scheduler, so the directory
+     * is guaranteed to exist before {@link #initImageScheduler()} registers the
+     * {@link WatchService} on it.
      */
-    private final String imagesDirectoryPath;
+    private final DirectoryProvisioner directoryProvisioner;
+
+    /**
+     * The images' directory, resolved from the provisioner in
+     * {@link #initImageScheduler()}.
+     */
+    private Path imagesDirectory;
 
     @Inject
-    WatchImagesTask(
-            final StaticFileService staticFileService,
-            @ConfigProperty(
-                    name = "application.images-directory",
-                    defaultValue = "static/images"
-            ) final String imagesDirectoryPath
+    ImageScheduler(
+            final StaticFileCache staticFileCache,
+            final DirectoryProvisioner directoryProvisioner
     ) {
-        this.staticFileService = staticFileService;
-        this.imagesDirectoryPath = imagesDirectoryPath;
+        this.staticFileCache = staticFileCache;
+        this.directoryProvisioner = directoryProvisioner;
     }
 
     /**
@@ -92,11 +103,14 @@ final class WatchImagesTask {
     /**
      * Initializes the class {@link WatchKey} variable <i>watchKey</i> and
      * performs the initial images directory check up for new or updated files.
-     * It also compares the database images against the files to check which DB
-     * image has lost its file if any and then removes the entity from the DB.
+     * It also compares the cached images against the files to check which
+     * cached image has lost its file if any and then removes it from the cache.
      */
     @PostConstruct
-    void initWatchImagesTask() {
+    void initImageScheduler() {
+        // NOTE: Reading from the provisioner runs its @PostConstruct first, so the directory exists before register().
+        imagesDirectory = directoryProvisioner.imagesDirectory();
+
         WatchService watcher = null;
 
         try {
@@ -110,10 +124,8 @@ final class WatchImagesTask {
             throw new RuntimeException("Watcher service not available");
         }
 
-        final Path imagesPath = Paths.get(imagesDirectoryPath);
-
         try {
-            watchKey = imagesPath.register(
+            watchKey = imagesDirectory.register(
                     watcher,
                     StandardWatchEventKinds.ENTRY_CREATE,
                     StandardWatchEventKinds.ENTRY_DELETE,
@@ -126,7 +138,7 @@ final class WatchImagesTask {
             Quarkus.asyncExit();
         }
 
-        final File[] files = imagesPath.toFile().listFiles();
+        final File[] files = imagesDirectory.toFile().listFiles();
 
         if (files == null) {
             throw new RuntimeException("File list not available!");
@@ -139,31 +151,27 @@ final class WatchImagesTask {
             fileNames.add(file.getName());
         }
 
-        final List<StaticFile> staticFiles = staticFileService.listAllMissingFiles(
-                fileNames,
-                Type.IMAGE
-        );
+        for (StaticFile file : staticFileCache.missing(fileNames, Type.IMAGE)) {
+            staticFileCache.removeByName(file.getName());
 
-        for (StaticFile file : staticFiles) {
-            staticFileService.deleteStaticFile(file);
-
-            Log.infof("Found image without file. Deleting file: %s", file.getName());
+            Log.infof("Found image without file. Deleting image: %s", file.getName());
         }
     }
 
     /**
      * Runs every 5 minutes and checks the {@link WatchKey} that was
      * initialized during class creation. The key monitors the images directory
-     * and this method creates/updates/deletes entries in the DB accordingly.
+     * and this method creates/updates/deletes entries in the
+     * {@link StaticFileCache} accordingly.
      */
     @Scheduled(
-            identity = "watch_images_task",
+            identity = "image_scheduler",
             every = "5m",
             delayed = "5s"
     )
-    void runWatchImagesTask() {
+    void runImageScheduler() {
         if (!watchKeyValid) {
-            Log.fatal("IMAGE - WatchKey NOT valid. Stopping task!");
+            Log.fatal("IMAGE - WatchKey NOT valid. Stopping scheduler!");
             return;
         }
 
@@ -180,17 +188,15 @@ final class WatchImagesTask {
 
             final Path filename = ev.context();
 
-            final Path imagesPath = Paths.get(imagesDirectoryPath);
-
-            final File file = imagesPath.resolve(filename).toFile();
+            final File file = imagesDirectory.resolve(filename).toFile();
 
             if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                 consumeImageFile(file);
             } else {
-                final StaticFile staticFile = staticFileService.findFileByName(file.getName());
+                final StaticFile staticFile = staticFileCache.byName(file.getName());
 
-                if (staticFile != null && staticFileService.deleteStaticFile(staticFile)) {
-                    Website.STATIC_CACHE.remove(staticFile.getName());
+                if (staticFile != null) {
+                    staticFileCache.removeByName(staticFile.getName());
                     Log.infof("Successfully deleted image of file: %s", file.getName());
                 }
             }
@@ -200,46 +206,67 @@ final class WatchImagesTask {
     }
 
     /**
-     * Consumes the provided {@link StaticFile} {@link File} and either updates or
-     * creates an image entity depending on the state of the image file against the
-     * entity in the DB. If hashing the file fails the entity is left untouched
-     * and the method returns without persisting a partially updated entity.
+     * Consumes the provided {@link StaticFile} {@link File} and either updates
+     * or creates an image model depending on the state of the image file
+     * against the model in the cache. If hashing the file fails the model is
+     * left untouched and the method returns without storing a partially
+     * updated model. The modified timestamp is derived from the file's
+     * filesystem attributes.
      *
      * @param file Image file to consume.
      */
     private void consumeImageFile(final File file) {
-        boolean isNew = false;
-        StaticFile staticFile = staticFileService.findFileByName(file.getName());
+        final String fileName = file.getName();
 
-        if (staticFile == null) {
+        StaticFile staticFile = staticFileCache.byName(fileName);
+
+        final boolean isNew = staticFile == null;
+
+        if (isNew) {
             staticFile = new StaticFile();
-            isNew = true;
+            staticFile.setName(fileName);
+            staticFile.setType(Type.IMAGE);
         }
 
         final String oldHash = staticFile.getHash();
 
+        final String hash;
+
         try {
-            final String hash = TaskUtils.hashFile(file);
-            staticFile.setHash(hash);
+            hash = TaskUtils.hashFile(file);
         } catch (NoSuchAlgorithmException | IOException e) {
-            Log.errorf(e, "Failed to hash file %s with algorithm %s", staticFile.getName(), Website.HASH_ALGORITHM);
+            Log.errorf(e, "Failed to hash file %s with algorithm %s", fileName, Website.HASH_ALGORITHM);
             return;
         }
 
-        if (isNew) {
-            staticFile.setName(file.getName());
-            staticFile.setType(Type.IMAGE);
-            staticFileService.createStaticFile(staticFile);
-            staticFile = staticFileService.findFileByName(file.getName());
-            Log.infof("Successfully created image for file: %s", file.getName());
-        } else {
-            // NOTE: Skip persisting when no actual file changes have occurred.
-            if (!staticFile.getHash().equals(oldHash)) {
-                staticFile = staticFileService.updateStaticFile(staticFile);
-                Log.infof("Successfully updated image for file: %s", file.getName());
-            }
+        // NOTE: Skip re-processing when no actual file changes have occurred.
+        if (!isNew && hash.equals(oldHash)) {
+            return;
         }
 
-        Website.STATIC_CACHE.put(staticFile.getName(), staticFile);
+        staticFile.setHash(hash);
+
+        try {
+            final BasicFileAttributes attributes = Files.readAttributes(
+                    file.toPath(),
+                    BasicFileAttributes.class
+            );
+
+            staticFile.setModified(LocalDateTime.ofInstant(
+                    attributes.lastModifiedTime().toInstant(),
+                    Website.TIME_ZONE
+            ));
+        } catch (IOException e) {
+            Log.errorf(e, "Failed to read file attributes for %s", fileName);
+            return;
+        }
+
+        staticFileCache.put(staticFile);
+
+        if (isNew) {
+            Log.infof("Successfully created image for file: %s", fileName);
+        } else {
+            Log.infof("Successfully updated image for file: %s", fileName);
+        }
     }
 }
