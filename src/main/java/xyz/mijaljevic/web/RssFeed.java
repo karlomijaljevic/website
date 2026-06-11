@@ -23,9 +23,8 @@
 
 package xyz.mijaljevic.web;
 
-import io.quarkus.logging.Log;
-import io.quarkus.runtime.Quarkus;
-import io.smallrye.common.annotation.NonBlocking;
+import io.quarkus.qute.Location;
+import io.quarkus.qute.Template;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -35,32 +34,42 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
+import xyz.mijaljevic.cache.BlogCache;
+import xyz.mijaljevic.cache.BlogRenderer;
+import xyz.mijaljevic.domain.dto.RssItem;
 import xyz.mijaljevic.domain.entity.Blog;
-import xyz.mijaljevic.domain.rss.Item;
-import xyz.mijaljevic.domain.rss.Rss;
-import xyz.mijaljevic.utils.MarkdownParser;
 
-import java.io.File;
-import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Serves the RSS feed.
+ * Serves the RSS feed. The feed is rendered on demand from the in-memory
+ * {@link BlogCache} through the {@code rss.xml} Qute template; there is no
+ * persisted feed and no JAXB binding anymore.
  */
 @PermitAll
 @Path("/rss")
 public final class RssFeed {
+    /**
+     * Date time format specified by the RSS 2.0 specification (RFC 822).
+     */
+    private static final DateTimeFormatter RSS_SPEC_FORMAT = DateTimeFormatter.ofPattern("E, dd MMM yyyy HH:mm:ss z");
+
+    /**
+     * Default last build date for the RSS feed. It is set to the UNIX epoch and
+     * used when the feed holds no blogs.
+     */
+    private static final String DEFAULT_LAST_BUILD_DATE = "Thu, 01 Jan 1970 00:00:00 UTC";
+
+    /**
+     * URL used by the website, should stay mijaljevic.xyz as long as I live I hope.
+     */
+    private static final String WEBSITE_URL = "https://mijaljevic.xyz/";
+
     /**
      * Value of the HTTP <i>Cache-Control</i> header applied to the feed.
      */
@@ -72,64 +81,93 @@ public final class RssFeed {
     private final HttpHeaders httpHeaders;
 
     /**
-     * Creates the resource with its configuration and request headers.
+     * The {@code rss.xml} Qute template that renders the feed.
+     */
+    private final Template rss;
+
+    /**
+     * The in-memory blog cache, the single source of truth for the feed items.
+     */
+    private final BlogCache blogCache;
+
+    /**
+     * Renders (and caches) the HTML body used as each item's description.
+     */
+    private final BlogRenderer blogRenderer;
+
+    /**
+     * Creates the resource with its configuration, request headers, template
+     * and caches.
      *
      * @param cacheControl The HTTP <i>Cache-Control</i> header value.
      * @param httpHeaders  The incoming request {@link HttpHeaders}.
+     * @param rss          The {@code rss.xml} Qute template.
+     * @param blogCache    The in-memory blog cache.
+     * @param blogRenderer The on-demand blog HTML renderer.
      */
     @Inject
     public RssFeed(
             @ConfigProperty(name = "application.cache-control") final String cacheControl,
-            final HttpHeaders httpHeaders
+            final HttpHeaders httpHeaders,
+            @Location("rss.xml") final Template rss,
+            final BlogCache blogCache,
+            final BlogRenderer blogRenderer
     ) {
         this.cacheControl = cacheControl;
         this.httpHeaders = httpHeaders;
+        this.rss = rss;
+        this.blogCache = blogCache;
+        this.blogRenderer = blogRenderer;
     }
 
     /**
-     * Date time format specified by the RSS 2.0 specification (RFC 822).
-     */
-    private static final DateTimeFormatter RSS_SPEC_FORMAT = DateTimeFormatter.ofPattern("E, dd MMM yyyy HH:mm:ss z");
-
-    /**
-     * Default last build date for the RSS feed. It is set to the UNIX epoch.
-     */
-    private static final String DEFAULT_LAST_BUILD_DATE = "Thu, 01 Jan 1970 00:00:00 UTC";
-
-    /**
-     * URL used by the website, should stay mijaljevic.xyz as long as I live I hope.
-     */
-    private static final String WEBSITE_URL = "https://mijaljevic.xyz/";
-
-    /**
-     * {@link JAXBContext} tied to the {@link Rss} class.
-     */
-    private static final JAXBContext RSS_JAXB_CONTEXT = getRssContext();
-
-    /**
-     * RSS feed XML file served by the GET request to this endpoint.
-     */
-    private static final AtomicReference<Rss> RSS_FEED = new AtomicReference<>(null);
-
-    /**
-     * Serves the RSS feed XML with conditional-request caching headers.
+     * Serves the RSS feed XML with conditional-request caching headers. The feed
+     * is rendered from the current {@link BlogCache} contents on every call.
+     *
+     * <p>
+     * Intentionally not {@code @NonBlocking}: item bodies are rendered through
+     * the Quarkus {@code @CacheResult} renderer, whose synchronous lookup blocks
+     * the calling thread, which must not happen on the Vert.x event loop.
+     * </p>
      *
      * @return The RSS feed {@link Response}, or a 304 if the client cache is
      * current.
      */
     @GET
-    @NonBlocking
     @Produces(MediaType.TEXT_XML)
     public Response getRss() {
-        String rssFeed = fetchRssFeed();
+        List<Blog> recent = blogCache.recent();
 
-        String etag = String.valueOf(rssFeed != null ? rssFeed.hashCode() : "");
+        List<RssItem> items = new ArrayList<>();
 
-        String lastBuildDate = RSS_FEED.get().getChannel().getLastBuildDate();
+        for (Blog blog : recent) {
+            String link = WEBSITE_URL + "blog/" + blog.getSlug();
 
-        if (lastBuildDate == null || lastBuildDate.isBlank()) {
-            lastBuildDate = DEFAULT_LAST_BUILD_DATE;
+            String pubDate = blog.getCreated()
+                    .atZone(Website.TIME_ZONE)
+                    .format(RSS_SPEC_FORMAT);
+
+            items.add(new RssItem(
+                    blog.getTitle(),
+                    link,
+                    link,
+                    blogRenderer.render(blog.getFileName()),
+                    pubDate
+            ));
         }
+
+        String lastBuildDate = recent.stream()
+                .findFirst()
+                .map(blog -> blog.getCreated()
+                        .atZone(Website.TIME_ZONE)
+                        .format(RSS_SPEC_FORMAT))
+                .orElse(DEFAULT_LAST_BUILD_DATE);
+
+        String rssFeed = rss.data("lastBuildDate", lastBuildDate)
+                .data("items", items)
+                .render();
+
+        String etag = String.valueOf(rssFeed.hashCode());
 
         String lastModified = WebPage.parseLastModifiedTime(LocalDateTime.parse(
                 lastBuildDate,
@@ -152,137 +190,5 @@ public final class RssFeed {
                 .header(HttpHeaders.CACHE_CONTROL, cacheControl)
                 .header(HttpHeaders.LAST_MODIFIED, lastModified)
                 .build();
-    }
-
-    /**
-     * Tries to initialize the RSS feed.
-     *
-     * @param rssFilePath The path to the RSS template file.
-     * @return Returns true on success and false on failure.
-     * @throws NullPointerException if {@code rssFilePath} is null.
-     */
-    public static boolean initializeRssFeed(final String rssFilePath) {
-        Objects.requireNonNull(rssFilePath, "rssFilePath must not be null");
-
-        Rss rss = readRssFeed(new File(rssFilePath));
-
-        if (rss == null) {
-            return false;
-        }
-
-        rss.getChannel().setLastBuildDate(DEFAULT_LAST_BUILD_DATE);
-
-        RSS_FEED.set(rss);
-
-        return true;
-    }
-
-    /**
-     * Updates the items served by the RSS feed.
-     *
-     * @param blogsDirectoryPath The path to the blogs' directory.
-     * @throws NullPointerException if {@code blogsDirectoryPath} is null.
-     */
-    public static void updateRssFeed(final String blogsDirectoryPath) {
-        Objects.requireNonNull(blogsDirectoryPath, "blogsDirectoryPath must not be null");
-
-        List<Item> items = new ArrayList<>();
-
-        Website.retrieveRecentBlogs().forEach(blog -> {
-            Item item = new Item();
-
-            String filePath = blogsDirectoryPath
-                    + File.separator
-                    + blog.getFileName();
-
-            item.setDescription(MarkdownParser.renderMarkdownToHtml(new File(filePath)));
-            item.setGuid(WEBSITE_URL + "blog/" + blog.getId());
-            item.setLink(WEBSITE_URL + "blog/" + blog.getId());
-            item.setTitle(blog.getTitle());
-
-            String pubDate = blog.getCreated()
-                    .atZone(Website.TIME_ZONE)
-                    .format(RSS_SPEC_FORMAT);
-
-            item.setPubDate(pubDate);
-
-            items.add(item);
-        });
-
-        Rss current = RSS_FEED.get();
-
-        Blog lastUpdatedBlog = Website.BLOG_CACHE
-                .values()
-                .stream()
-                .sorted()
-                .findFirst()
-                .orElse(null);
-
-        if (lastUpdatedBlog != null) {
-            String pubDate = lastUpdatedBlog.getCreated()
-                    .atZone(Website.TIME_ZONE)
-                    .format(RSS_SPEC_FORMAT);
-            current.getChannel().setLastBuildDate(pubDate);
-        }
-
-        current.getChannel().setItems(items);
-
-        RSS_FEED.set(current);
-    }
-
-    /**
-     * @return Returns the {@link JAXBContext} tied to the {@link Rss} class.
-     */
-    private static JAXBContext getRssContext() {
-        JAXBContext context = null;
-
-        try {
-            context = JAXBContext.newInstance(Rss.class);
-        } catch (JAXBException e) {
-            Log.fatal("Failed to create JAXB context for the Rss class!", e);
-            Quarkus.asyncExit();
-        }
-
-        return context;
-    }
-
-    /**
-     * Parses the provided file into a {@link Rss} instance. In case the
-     * provided file was not an RSS XML the method returns null.
-     *
-     * @param file A {@link File} to parse
-     * @return Returns a {@link Rss} instance. In case the provided file was
-     * not an RSS XML the method returns null.
-     */
-    private static Rss readRssFeed(final File file) {
-        try {
-            Unmarshaller jaxbUnmarshaller = RSS_JAXB_CONTEXT.createUnmarshaller();
-            return (Rss) jaxbUnmarshaller.unmarshal(file);
-        } catch (JAXBException e) {
-            Log.errorf(e, "Failed to parse the RSS feed XML file: %s", file);
-            return null;
-        }
-    }
-
-    /**
-     * Transforms the static local {@link Rss} field <i>RSS_FEED</i> into an
-     * XML {@link String}.
-     *
-     * @return A {@link String} holding the RSS feed or null in case an
-     * exception occurs.
-     */
-    private static String fetchRssFeed() {
-        try {
-            StringWriter stringWriter = new StringWriter();
-            Marshaller marshaller = RSS_JAXB_CONTEXT.createMarshaller();
-
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            marshaller.marshal(RSS_FEED.get(), stringWriter);
-
-            return stringWriter.toString();
-        } catch (JAXBException e) {
-            Log.error("Failed to marshal the RSS instance into a String instance!", e);
-            return null;
-        }
     }
 }

@@ -30,7 +30,6 @@ import io.quarkus.runtime.Quarkus;
 import io.smallrye.common.annotation.NonBlocking;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
@@ -41,12 +40,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
+import xyz.mijaljevic.cache.BlogCache;
+import xyz.mijaljevic.cache.BlogRenderer;
 import xyz.mijaljevic.domain.dto.BlogLink;
 import xyz.mijaljevic.domain.entity.Blog;
-import xyz.mijaljevic.utils.MarkdownParser;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -72,9 +70,14 @@ public final class WebPage {
     private final String cacheControl;
 
     /**
-     * The path to the blogs' directory.
+     * The in-memory cache that is the single source of truth for blogs.
      */
-    private final String blogsDirectoryPath;
+    private final BlogCache blogCache;
+
+    /**
+     * Renders (and caches) the HTML body of a blog on demand.
+     */
+    private final BlogRenderer blogRenderer;
 
     /**
      * Incoming request headers, used for conditional-request comparisons.
@@ -109,22 +112,21 @@ public final class WebPage {
     /**
      * Creates the resource with its configuration and injected Qute templates.
      *
-     * @param cacheControl       The HTTP <i>Cache-Control</i> header value.
-     * @param blogsDirectoryPath The path to the blogs' directory.
-     * @param httpHeaders        The incoming request {@link HttpHeaders}.
-     * @param homePage           The home page template.
-     * @param blogPage           The single blog page template.
-     * @param allBlogsPage       The all blogs listing template.
-     * @param contactPage        The contact page template.
-     * @param errorPage          The error page template.
+     * @param cacheControl The HTTP <i>Cache-Control</i> header value.
+     * @param blogCache    The in-memory blog cache.
+     * @param blogRenderer The on-demand blog HTML renderer.
+     * @param httpHeaders  The incoming request {@link HttpHeaders}.
+     * @param homePage     The home page template.
+     * @param blogPage     The single blog page template.
+     * @param allBlogsPage The all blogs listing template.
+     * @param contactPage  The contact page template.
+     * @param errorPage    The error page template.
      */
     @Inject
     public WebPage(
             @ConfigProperty(name = "application.cache-control") final String cacheControl,
-            @ConfigProperty(
-                    name = "application.blogs-directory",
-                    defaultValue = "blogs"
-            ) final String blogsDirectoryPath,
+            final BlogCache blogCache,
+            final BlogRenderer blogRenderer,
             final HttpHeaders httpHeaders,
             final Template homePage,
             final Template blogPage,
@@ -133,7 +135,8 @@ public final class WebPage {
             final Template errorPage
     ) {
         this.cacheControl = cacheControl;
-        this.blogsDirectoryPath = blogsDirectoryPath;
+        this.blogCache = blogCache;
+        this.blogRenderer = blogRenderer;
         this.httpHeaders = httpHeaders;
         this.homePage = homePage;
         this.blogPage = blogPage;
@@ -183,7 +186,7 @@ public final class WebPage {
 
         List<BlogLink> blogs = new ArrayList<>();
 
-        Website.retrieveRecentBlogs()
+        blogCache.recent()
                 .forEach(blog -> blogs.add(BlogLink.generateBlogLinkFromBlog(blog)));
 
         TemplateInstance template = homePage.data("title", "Karlo Mijaljevic")
@@ -198,29 +201,25 @@ public final class WebPage {
     }
 
     /**
-     * Serves a single blog page for the requested blog ID.
+     * Serves a single blog page for the requested blog slug.
      *
-     * @param id The ID of the blog to render.
+     * <p>
+     * Intentionally not {@code @NonBlocking}: the body is rendered through the
+     * Quarkus {@code @CacheResult} renderer, whose synchronous lookup blocks the
+     * calling thread, which must not happen on the Vert.x event loop.
+     * </p>
+     *
+     * @param slug The slug of the blog to render.
      * @return The rendered blog page, or a 304 if the client cache is current.
      */
     @GET
-    @NonBlocking
-    @Path("/blog/{id}")
+    @Path("/blog/{slug}")
     @Produces(MediaType.TEXT_HTML)
-    public Response getBlogPage(@PathParam("id") final Long id) {
-        if (id == null) {
-            throw new BadRequestException("Client tried to find a blog with a null ID!");
-        }
-
-        Blog blog = Website.BLOG_CACHE
-                .values()
-                .stream()
-                .filter(value -> value.getId().equals(id))
-                .findFirst()
-                .orElse(null);
+    public Response getBlogPage(@PathParam("slug") final String slug) {
+        Blog blog = blogCache.bySlug(slug);
 
         if (blog == null) {
-            throw new NotFoundException("Client tried to find a blog with an unknown ID!");
+            throw new NotFoundException("Client tried to find a blog with an unknown slug!");
         }
 
         LocalDateTime lastUpdated = blog.getUpdated() == null
@@ -231,26 +230,13 @@ public final class WebPage {
         String lastModified = parseLastModifiedTime(lastUpdated);
 
         if (isResourceSame(etag, lastModified)) {
-            Website.BLOG_CACHE.get(blog.getFileName())
-                    .setLastRead(LocalDateTime.now());
-
             return Response.status(Response.Status.NOT_MODIFIED).build();
         }
 
-        if (blog.getData() == null) {
-            try {
-                blog = syncBlogData(blog, blogsDirectoryPath);
-            } catch (IOException e) {
-                Log.errorf(e, "Failed to display the blog with id %s", id);
-
-                throw new IllegalStateException("Page rendering for blog with ID " + id + " failed!", e);
-            }
-        }
-
-        Website.BLOG_CACHE.get(blog.getFileName())
-                .setLastRead(LocalDateTime.now());
+        String data = blogRenderer.render(blog.getFileName());
 
         TemplateInstance template = blogPage.data("blog", blog)
+                .data("data", data)
                 .data("title", blog.getTitle());
 
         return Response.ok()
@@ -278,9 +264,8 @@ public final class WebPage {
             return Response.status(Response.Status.NOT_MODIFIED).build();
         }
 
-        List<BlogLink> blogs = Website.BLOG_CACHE.values()
+        List<BlogLink> blogs = blogCache.all()
                 .stream()
-                .sorted()
                 .map(BlogLink::generateBlogLinkFromBlog)
                 .toList();
 
@@ -353,9 +338,9 @@ public final class WebPage {
 
         return Response.ok()
                 .entity(template)
-                .header(HttpHeaders.ETAG, E_TAG)
+                .header(HttpHeaders.ETAG, eTag)
                 .header(HttpHeaders.CACHE_CONTROL, cacheControl)
-                .header(HttpHeaders.LAST_MODIFIED, LAST_MODIFIED)
+                .header(HttpHeaders.LAST_MODIFIED, lastModified)
                 .build();
     }
 
@@ -419,37 +404,6 @@ public final class WebPage {
         }
 
         return hexString.toString();
-    }
-
-    /**
-     * Reads the data from the blog file and puts the updated blog reference
-     * back into the blogs cache updating the data.
-     *
-     * @param blog               The {@link Blog} entity that has been
-     *                           requested.
-     * @param blogsDirectoryPath The path to the blogs' directory.
-     * @return Returns the updated {@link Blog} reference.
-     * @throws IOException In case it failed to read the blog data from the
-     *                     file.
-     */
-    private static synchronized Blog syncBlogData(
-            final Blog blog,
-            final String blogsDirectoryPath
-    ) throws IOException {
-        // NOTE: Check if it has been synced by a closely timed thread
-        final Blog synced = Website.BLOG_CACHE.get(blog.getFileName());
-
-        if (synced.getData() != null) {
-            return synced;
-        }
-
-        String filePath = blogsDirectoryPath + File.separator + blog.getFileName();
-
-        blog.setData(MarkdownParser.renderMarkdownToHtml(new File(filePath)));
-
-        Website.BLOG_CACHE.put(blog.getFileName(), blog);
-
-        return blog;
     }
 
     /**

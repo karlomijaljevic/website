@@ -23,14 +23,6 @@
 
 package xyz.mijaljevic.domain.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Transient;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -38,9 +30,10 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * <p>
- * A model that represents a blog. The update and created values are
- * automatically created/updated during entity persistence/update there is no
- * need to set them manually.
+ * A plain in-memory model that represents a blog. The blog cache is the single
+ * source of truth; the <i>created</i> and <i>updated</i> values are derived
+ * from the backing file's filesystem attributes and set by the scheduler that
+ * reconciles the blogs directory.
  * </p>
  *
  * <p>
@@ -48,11 +41,10 @@ import java.time.format.DateTimeFormatter;
  * blogs is the newest goes first and the oldest goes last aka ordered by the
  * <i>created</i> attribute. This is against the standard recommendation
  * <i>(does not follow the equals() method)</i>. This is done to simplify the
- * sorting of blog entities.
+ * sorting of blog models.
  * </p>
  */
 @Data
-@Entity(name = "blog")
 public class Blog implements Comparable<Blog> {
     /**
      * Website date pattern used for displaying the created and updated dates.
@@ -60,94 +52,46 @@ public class Blog implements Comparable<Blog> {
     private static final DateTimeFormatter WEBSITE_DATE_PATTERN = DateTimeFormatter.ofPattern("dd-MMM-uuuu");
 
     /**
-     * Primary key of the blog entity.
+     * Title of the blog. Derived from the first heading of the markdown file.
      */
-    @Id
-    @SequenceGenerator(
-            name = "blogSeq",
-            sequenceName = "blog_seq",
-            allocationSize = 1
-    )
-    @GeneratedValue(generator = "blogSeq")
-    private Long id;
-
-    /**
-     * Title of the blog. Unique and not nullable.
-     */
-    @Column(
-            name = "title",
-            nullable = false,
-            unique = true
-    )
     private String title;
 
     /**
-     * Name of the source file backing the blog. Unique and immutable.
+     * URL slug derived from the blog title. Used as the public identifier in
+     * {@code /blog/{slug}} URLs and RSS GUIDs.
      */
-    @Column(
-            name = "file_name",
-            nullable = false,
-            unique = true,
-            updatable = false
-    )
+    private String slug;
+
+    /**
+     * Name of the source file backing the blog.
+     */
     private String fileName;
 
     /**
      * Content hash used for HTTP <i>ETag</i> caching.
      */
-    @Column(
-            name = "hash",
-            nullable = false
-    )
     private String hash;
 
     /**
-     * Timestamp set automatically when the entity is first persisted.
+     * Creation timestamp, derived from the backing file's creation time.
      */
-    @Column(
-            name = "created",
-            nullable = false,
-            updatable = false
-    )
     private LocalDateTime created;
 
     /**
-     * Timestamp set automatically whenever the entity is updated.
+     * Update timestamp, derived from the backing file's last-modified time.
+     * Left {@code null} when it does not differ from {@link #created}.
      */
-    @Column(name = "updated")
     private LocalDateTime updated;
 
     /**
-     * Transient timestamp of the last time the blog was read from cache.
-     */
-    @Transient
-    private LocalDateTime lastRead;
-
-    /**
-     * Transient rendered HTML body of the blog, lazily populated.
-     */
-    @Transient
-    private String data;
-
-    @PrePersist
-    void onCreate() {
-        setCreated(LocalDateTime.now());
-    }
-
-    @PreUpdate
-    void onUpdate() {
-        setUpdated(LocalDateTime.now());
-    }
-
-    /**
-     * @return The formated <i>created</i> variable of the blog entity.
+     * @return The formated <i>created</i> variable of the blog model.
      */
     public String parseCreated() {
         return WEBSITE_DATE_PATTERN.format(created);
     }
 
     /**
-     * @return The formated <i>updated</i> variable of the blog entity.
+     * @return The formated <i>updated</i> variable of the blog model.
      */
     public String parseUpdated() {
         return updated == null ? "" : WEBSITE_DATE_PATTERN.format(updated);

@@ -25,46 +25,62 @@ package xyz.mijaljevic;
 
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.Quarkus;
-import io.quarkus.runtime.StartupEvent;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import xyz.mijaljevic.web.RssFeed;
 
 import java.io.File;
 import java.nio.file.Path;
 
 /**
- * Handles lifecycle events e.g. application startup.
+ * Provisions the blogs and images directories at application startup and
+ * exposes their resolved {@link Path}s.
+ *
+ * <p>
+ * The directories are created in {@link #provision()} (a {@code @PostConstruct}
+ * callback). The schedulers that watch these directories
+ * ({@code BlogScheduler}, {@code ImageScheduler}) depend on this bean and read
+ * their watched {@link Path} from it via {@link #blogsDirectory()} /
+ * {@link #imagesDirectory()}. Because CDI constructs (and runs the
+ * {@code @PostConstruct} of) a dependency before the first method call from a
+ * dependent bean, the watched directory is guaranteed to exist before a
+ * scheduler registers its {@code WatchService} on it. This removes the
+ * startup race that previously existed between the directory-creating
+ * {@code @Observes StartupEvent} observer and the {@code @Startup} schedulers'
+ * own {@code @PostConstruct}, whose relative ordering was undefined.
+ * </p>
  */
 @ApplicationScoped
-final class LifecycleHandler {
+public final class DirectoryProvisioner {
     /**
-     * The path to the blogs' directory.
+     * The configured path to the blogs' directory.
      */
     private final String blogsDirectoryPath;
 
     /**
-     * The path to the images' directory.
+     * The configured path to the images' directory.
      */
     private final String imagesDirectoryPath;
 
     /**
-     * The path to the RSS feed file. Configured using the
-     * "application.rss-feed" property.
+     * The resolved blogs directory, created in {@link #provision()}.
      */
-    private final String rssFilePath;
+    private Path blogsDirectory;
 
     /**
-     * Creates the handler with its configured directory and RSS feed paths.
+     * The resolved images directory, created in {@link #provision()}.
+     */
+    private Path imagesDirectory;
+
+    /**
+     * Creates the provisioner with its configured directory paths.
      *
      * @param blogsDirectoryPath  The path to the blogs' directory.
      * @param imagesDirectoryPath The path to the images' directory.
-     * @param rssFilePath         The path to the RSS feed file.
      */
     @Inject
-    LifecycleHandler(
+    DirectoryProvisioner(
             @ConfigProperty(
                     name = "application.blogs-directory",
                     defaultValue = "blogs"
@@ -72,43 +88,58 @@ final class LifecycleHandler {
             @ConfigProperty(
                     name = "application.images-directory",
                     defaultValue = "static/images"
-            ) final String imagesDirectoryPath,
-            @ConfigProperty(
-                    name = "application.rss-feed",
-                    defaultValue = "static/rss.xml"
-            ) final String rssFilePath
+            ) final String imagesDirectoryPath
     ) {
         this.blogsDirectoryPath = blogsDirectoryPath;
         this.imagesDirectoryPath = imagesDirectoryPath;
-        this.rssFilePath = rssFilePath;
     }
 
     /**
-     * This method is called when the application starts. It configures the
-     * directories and initializes the RSS feed.
-     *
-     * @param event The startup event.
+     * Creates the blogs and images directories if they do not already exist.
+     * Runs once, at bean construction, before any dependent scheduler bean is
+     * put into service. A failure to create either directory is unrecoverable:
+     * the application is asked to exit and construction is aborted so no
+     * scheduler registers a watch on a missing directory.
      */
-    void onStart(@Observes final StartupEvent event) {
-        Path path = configureDirectory(blogsDirectoryPath);
-        if (path == null) {
+    @PostConstruct
+    void provision() {
+        blogsDirectory = configureDirectory(blogsDirectoryPath);
+        if (blogsDirectory == null) {
             Log.fatal("The blogs directory could not be created.");
             Quarkus.asyncExit();
+            throw new IllegalStateException("Failed to provision the blogs directory.");
         }
         Log.info("Successfully configured the blogs directory reference.");
 
-        path = configureDirectory(imagesDirectoryPath);
-        if (path == null) {
+        imagesDirectory = configureDirectory(imagesDirectoryPath);
+        if (imagesDirectory == null) {
             Log.fatal("The images directory could not be created.");
             Quarkus.asyncExit();
+            throw new IllegalStateException("Failed to provision the images directory.");
         }
         Log.info("Successfully configured the images directory reference.");
+    }
 
-        if (!RssFeed.initializeRssFeed(rssFilePath)) {
-            Log.fatal("The RSS feed root content could not be initialized.");
-            Quarkus.asyncExit();
-        }
-        Log.info("Successfully initialized the RSS feed root content.");
+    /**
+     * Returns the resolved blogs directory. The directory is guaranteed to
+     * exist for any caller, since this bean's {@link #provision()} runs before
+     * a dependent bean can invoke this method.
+     *
+     * @return The blogs directory {@link Path}.
+     */
+    public Path blogsDirectory() {
+        return blogsDirectory;
+    }
+
+    /**
+     * Returns the resolved images directory. The directory is guaranteed to
+     * exist for any caller, since this bean's {@link #provision()} runs before
+     * a dependent bean can invoke this method.
+     *
+     * @return The images directory {@link Path}.
+     */
+    public Path imagesDirectory() {
+        return imagesDirectory;
     }
 
     /**
