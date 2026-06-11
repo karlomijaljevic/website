@@ -9,7 +9,7 @@
 		<language>en</language>
 		<lastBuildDate>{lastBuildDate}</lastBuildDate>
 		<webMaster>karlo.mijaljevic@gmail.com (Karlo Mijaljević)</webMaster>
-		<atom:link href="https://karlo.mijaljevic.xyz/rss.xml" rel="self" type="application/rss+xml"/>
+		<atom:link href="https://mijaljevic.xyz/rss" rel="self" type="application/rss+xml"/>
 		{#for item in items}
 		<item>
 			<title>{item.title}</title>
