@@ -15,7 +15,7 @@ public enum StaticFileType {
      */
     CSS,
     /**
-     * A javascript.
+     * A JavaScript file.
      */
     JS,
     /**
