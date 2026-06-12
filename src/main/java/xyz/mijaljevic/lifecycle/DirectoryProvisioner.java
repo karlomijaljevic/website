@@ -1,30 +1,8 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
-package xyz.mijaljevic;
+package xyz.mijaljevic.lifecycle;
 
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.Quarkus;
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -45,10 +23,7 @@ import java.nio.file.Path;
  * {@link #imagesDirectory()}. Because CDI constructs (and runs the
  * {@code @PostConstruct} of) a dependency before the first method call from a
  * dependent bean, the watched directory is guaranteed to exist before a
- * scheduler registers its {@code WatchService} on it. This removes the
- * startup race that previously existed between the directory-creating
- * {@code @Observes StartupEvent} observer and the {@code @Startup} schedulers'
- * own {@code @PostConstruct}, whose relative ordering was undefined.
+ * scheduler registers its {@code WatchService} on it.
  * </p>
  */
 @ApplicationScoped
@@ -148,9 +123,11 @@ public final class DirectoryProvisioner {
      *
      * @param path The path to the directory which needs to be configured.
      * @return A {@link Path} instance of the directory which is resolved by
-     * the provided path. If null is returned than the method failed to create
+     * the provided path. If null is returned than the method failed to
+     * create
      * a directory.
      */
+    @Nullable
     private static Path configureDirectory(final String path) {
         final File directory = new File(path);
 

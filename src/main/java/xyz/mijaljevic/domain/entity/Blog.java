@@ -1,28 +1,6 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.domain.entity;
 
+import jakarta.annotation.Nonnull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -33,7 +11,7 @@ import java.time.format.DateTimeFormatter;
  * A plain in-memory model that represents a blog. The blog cache is the single
  * source of truth; the <i>created</i> and <i>updated</i> values are derived
  * from the backing file's filesystem attributes and set by the scheduler that
- * reconciles the blogs directory.
+ * reconciles the blogs' directory.
  * </p>
  *
  * <p>
@@ -52,7 +30,7 @@ public class Blog implements Comparable<Blog> {
     private static final DateTimeFormatter WEBSITE_DATE_PATTERN = DateTimeFormatter.ofPattern("dd-MMM-uuuu");
 
     /**
-     * Title of the blog. Derived from the first heading of the markdown file.
+     * Title of the blog. Derived from the first heading of the Markdown file.
      */
     private String title;
 
@@ -98,7 +76,7 @@ public class Blog implements Comparable<Blog> {
     }
 
     @Override
-    public int compareTo(final Blog other) {
+    public int compareTo(@Nonnull final Blog other) {
         if (created.isBefore(other.created)) {
             return 1;
         } else if (created.isEqual(other.created)) {

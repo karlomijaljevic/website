@@ -1,27 +1,22 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.scheduler;
+
+import io.quarkus.logging.Log;
+import io.quarkus.runtime.Quarkus;
+import io.quarkus.runtime.Startup;
+import io.quarkus.scheduler.Scheduled;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import xyz.mijaljevic.Website;
+import xyz.mijaljevic.cache.BlogCache;
+import xyz.mijaljevic.cache.BlogRenderer;
+import xyz.mijaljevic.domain.entity.Blog;
+import xyz.mijaljevic.lifecycle.DirectoryProvisioner;
+import xyz.mijaljevic.utils.FileUtils;
+import xyz.mijaljevic.utils.MarkdownParser;
+import xyz.mijaljevic.utils.Slugs;
+import xyz.mijaljevic.web.WebPage;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,24 +32,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import io.quarkus.logging.Log;
-import io.quarkus.runtime.Quarkus;
-import io.quarkus.runtime.Startup;
-import io.quarkus.scheduler.Scheduled;
-import xyz.mijaljevic.DirectoryProvisioner;
-import xyz.mijaljevic.Website;
-import xyz.mijaljevic.cache.BlogCache;
-import xyz.mijaljevic.cache.BlogRenderer;
-import xyz.mijaljevic.domain.entity.Blog;
-import xyz.mijaljevic.utils.MarkdownParser;
-import xyz.mijaljevic.utils.Slugs;
-import xyz.mijaljevic.utils.TaskUtils;
-import xyz.mijaljevic.web.WebPage;
 
 /**
  * Scheduler that contains a scheduled method that runs every 5 minutes and
@@ -121,7 +98,6 @@ final class BlogScheduler {
      */
     @PostConstruct
     void initBlogScheduler() {
-        // NOTE: Reading from the provisioner runs its @PostConstruct first, so the directory exists before register().
         blogsDirectory = directoryProvisioner.blogsDirectory();
 
         WatchService watcher = null;
@@ -179,7 +155,11 @@ final class BlogScheduler {
      * and this method creates/updates/deletes entries in the
      * {@link BlogCache} accordingly.
      */
-    @Scheduled(identity = "blog_scheduler", every = "5m", delayed = "5s")
+    @Scheduled(
+            identity = "blog_scheduler",
+            every = "5m",
+            delayed = "5s"
+    )
     void runBlogScheduler() {
         if (!watchKeyValid) {
             Log.fatal("BLOG - WatchKey NOT valid! Stopping scheduler!");
@@ -197,8 +177,7 @@ final class BlogScheduler {
                 continue;
             }
 
-            @SuppressWarnings("unchecked")
-            final WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            @SuppressWarnings("unchecked") final WatchEvent<Path> ev = (WatchEvent<Path>) event;
 
             final Path filename = ev.context();
 
@@ -241,9 +220,9 @@ final class BlogScheduler {
      *
      * @param file A blog file to consume.
      * @return False in case it failed to parse the file and true if the
-     *         process was successful.
+     * process was successful.
      */
-    private boolean consumeBlogFile(final File file) {
+    private boolean consumeBlogFile(@Nonnull final File file) {
         final String fileName = file.getName();
 
         Blog blog = blogCache.byFileName(fileName);
@@ -260,13 +239,12 @@ final class BlogScheduler {
         final String hash;
 
         try {
-            hash = TaskUtils.hashFile(file);
+            hash = FileUtils.hashFile(file);
         } catch (NoSuchAlgorithmException | IOException e) {
             Log.errorf(e, "Failed to hash file %s with algorithm %s", fileName, Website.HASH_ALGORITHM);
             return false;
         }
 
-        // NOTE: Skip re-processing when no actual file changes have occurred.
         if (!isNew && hash.equals(oldHash)) {
             return true;
         }
@@ -299,7 +277,6 @@ final class BlogScheduler {
 
         blogCache.put(blog);
 
-        // NOTE: Evict any stale rendered HTML so it is re-rendered on demand.
         blogRenderer.invalidate(fileName);
 
         if (isNew) {
@@ -312,11 +289,11 @@ final class BlogScheduler {
     }
 
     /**
-     * Checks if the provided file is a markdown file by checking its
+     * Checks if the provided file is a Markdown file by checking its
      * extension.
      *
      * @param file The file to check.
-     * @return True if the file is a markdown file and false otherwise.
+     * @return True if the file is a Markdown file and false otherwise.
      */
     private static boolean isMarkdownFile(final File file) {
         if (file == null || !file.isFile()) {

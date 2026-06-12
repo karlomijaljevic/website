@@ -1,29 +1,7 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.cache;
 
 import io.quarkus.logging.Log;
+import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.domain.entity.Blog;
@@ -34,8 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Application scoped in-memory index of {@link Blog} models. Replaces the
- * former global static map and the H2/Hibernate persistence layer; this cache
+ * Application scoped in-memory index of {@link Blog} models; this cache
  * is the single source of truth for blogs.
  *
  * <p>
@@ -64,7 +41,7 @@ public class BlogCache {
      *
      * @param blog The {@link Blog} to store.
      */
-    public void put(final Blog blog) {
+    public void put(@Nonnull final Blog blog) {
         final Blog previous = byFileName.get(blog.getFileName());
 
         if (previous != null && !previous.getSlug().equals(blog.getSlug())) {

@@ -1,28 +1,8 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.utils;
 
+import io.quarkus.logging.Log;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.Heading;
 import org.commonmark.node.Link;
@@ -30,11 +10,10 @@ import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.NodeRenderer;
 import org.commonmark.renderer.html.AttributeProvider;
+import org.commonmark.renderer.html.AttributeProviderContext;
 import org.commonmark.renderer.html.HtmlNodeRendererContext;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.commonmark.renderer.html.HtmlWriter;
-
-import io.quarkus.logging.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,11 +25,11 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Utility class for parsing markdown files and rendering them to HTML.
+ * Utility class for parsing Markdown files and rendering them to HTML.
  */
 public final class MarkdownParser {
     /**
-     * Custom attribute provider for the markdown to HTML renderer. It adds
+     * Custom attribute provider for the Markdown to HTML renderer. It adds
      * custom attributes to some HTML tags.
      */
     private static class BlogAttributeProvider implements AttributeProvider {
@@ -87,11 +66,14 @@ public final class MarkdownParser {
          */
         private final HtmlWriter html;
 
-        FencedCodeBlockNodeRenderer(final HtmlNodeRendererContext context) {
+        FencedCodeBlockNodeRenderer(
+                @Nonnull final HtmlNodeRendererContext context
+        ) {
             this.context = context;
             this.html = context.getWriter();
         }
 
+        @Nonnull
         @Override
         public Set<Class<? extends Node>> getNodeTypes() {
             return Set.of(FencedCodeBlock.class);
@@ -164,20 +146,27 @@ public final class MarkdownParser {
 
     /**
      * Markdown to HTML renderer instance
+     *
+     * <p>
+     * The {@link SuppressWarnings} <code>unused</code> is for the
+     * {@link AttributeProviderContext} context utilized in the lambda.
+     * </p>
      */
+    @SuppressWarnings("unused")
     public static final HtmlRenderer MD_RENDERER = HtmlRenderer.builder()
-            .attributeProviderFactory(context -> new BlogAttributeProvider())
+            .attributeProviderFactory( context -> new BlogAttributeProvider())
             .nodeRendererFactory(FencedCodeBlockNodeRenderer::new)
             .build();
 
     /**
-     * Renders a markdown file to HTML.
+     * Renders a Markdown file to HTML.
      *
-     * @param file A markdown file to render.
+     * @param file A Markdown file to render.
      * @return A {@link String} containing the HTML representation of the
-     * provided markdown file or null in case of a failure.
+     * provided Markdown file or null in case of a failure.
      * @throws NullPointerException if {@code file} is null.
      */
+    @Nullable
     public static String renderMarkdownToHtml(final File file) {
         Objects.requireNonNull(file, "file must not be null");
 
@@ -196,14 +185,15 @@ public final class MarkdownParser {
     }
 
     /**
-     * Extracts the title from a markdown file. The title is assumed to be the
+     * Extracts the title from a Markdown file. The title is assumed to be the
      * first heading in the file.
      *
-     * @param file A markdown file to extract the title from.
+     * @param file A Markdown file to extract the title from.
      * @return A {@link String} containing the title or "Untitled" in case of
      * failure or if no title is found.
      * @throws NullPointerException if {@code file} is null.
      */
+    @Nonnull
     public static String getTitleFromFile(final File file) {
         Objects.requireNonNull(file, "file must not be null");
 
@@ -217,12 +207,13 @@ public final class MarkdownParser {
     }
 
     /**
-     * Parses a markdown file into an {@link Node} instance.
+     * Parses a Markdown file into an {@link Node} instance.
      *
-     * @param file A markdown file to parse.
-     * @return A {@link Node} instance representing the markdown file or null
+     * @param file A Markdown file to parse.
+     * @return A {@link Node} instance representing the Markdown file or null
      * in case of a failure.
      */
+    @Nullable
     private static Node parseMarkdownFile(final File file) {
         try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
             return MD_PARSER.parseReader(reader);

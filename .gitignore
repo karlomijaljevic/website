@@ -8,9 +8,10 @@ target/
 
 # Idea
 .idea/
+*.iml
 
 # Project
 blogs/
 static/images/
 !static/images/favicon.ico
-.env
+data/

@@ -1,26 +1,3 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.cache;
 
 import io.quarkus.cache.CacheInvalidate;
@@ -34,11 +11,9 @@ import xyz.mijaljevic.utils.MarkdownParser;
 import java.io.File;
 
 /**
- * Renders a blog markdown file to HTML, caching the result so each file is
+ * Renders a blog Markdown file to HTML, caching the result so each file is
  * parsed at most once until it changes. Backed by Quarkus Cache (Caffeine),
- * keyed by the blog file name; this replaces the former hand-rolled lazy render
- * on the shared {@code Blog} model and the hourly {@code ClearCacheTask}
- * eviction.
+ * keyed by the blog file name.
  */
 @ApplicationScoped
 public class BlogRenderer {
@@ -85,6 +60,7 @@ public class BlogRenderer {
      */
     @CacheInvalidate(cacheName = "blog-html")
     public void invalidate(@CacheKey final String fileName) {
+        // TODO: Check if this is redundant
         // NOTE: Body intentionally empty; the interceptor evicts the entry.
     }
 }

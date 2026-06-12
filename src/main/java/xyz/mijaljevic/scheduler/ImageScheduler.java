@@ -1,41 +1,19 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.scheduler;
 
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import xyz.mijaljevic.DirectoryProvisioner;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.cache.StaticFileCache;
 import xyz.mijaljevic.domain.entity.StaticFile;
-import xyz.mijaljevic.domain.entity.StaticFile.Type;
-import xyz.mijaljevic.utils.TaskUtils;
+import xyz.mijaljevic.domain.entity.StaticFileType;
+import xyz.mijaljevic.lifecycle.DirectoryProvisioner;
+import xyz.mijaljevic.utils.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -108,7 +86,6 @@ final class ImageScheduler {
      */
     @PostConstruct
     void initImageScheduler() {
-        // NOTE: Reading from the provisioner runs its @PostConstruct first, so the directory exists before register().
         imagesDirectory = directoryProvisioner.imagesDirectory();
 
         WatchService watcher = null;
@@ -151,7 +128,7 @@ final class ImageScheduler {
             fileNames.add(file.getName());
         }
 
-        for (StaticFile file : staticFileCache.missing(fileNames, Type.IMAGE)) {
+        for (StaticFile file : staticFileCache.missing(fileNames, StaticFileType.IMAGE)) {
             staticFileCache.removeByName(file.getName());
 
             Log.infof("Found image without file. Deleting image: %s", file.getName());
@@ -183,8 +160,7 @@ final class ImageScheduler {
                 continue;
             }
 
-            @SuppressWarnings("unchecked")
-            final WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            @SuppressWarnings("unchecked") final WatchEvent<Path> ev = (WatchEvent<Path>) event;
 
             final Path filename = ev.context();
 
@@ -215,7 +191,7 @@ final class ImageScheduler {
      *
      * @param file Image file to consume.
      */
-    private void consumeImageFile(final File file) {
+    private void consumeImageFile(@Nonnull final File file) {
         final String fileName = file.getName();
 
         StaticFile staticFile = staticFileCache.byName(fileName);
@@ -225,7 +201,7 @@ final class ImageScheduler {
         if (isNew) {
             staticFile = new StaticFile();
             staticFile.setName(fileName);
-            staticFile.setType(Type.IMAGE);
+            staticFile.setType(StaticFileType.IMAGE);
         }
 
         final String oldHash = staticFile.getHash();
@@ -233,13 +209,12 @@ final class ImageScheduler {
         final String hash;
 
         try {
-            hash = TaskUtils.hashFile(file);
+            hash = FileUtils.hashFile(file);
         } catch (NoSuchAlgorithmException | IOException e) {
             Log.errorf(e, "Failed to hash file %s with algorithm %s", fileName, Website.HASH_ALGORITHM);
             return;
         }
 
-        // NOTE: Skip re-processing when no actual file changes have occurred.
         if (!isNew && hash.equals(oldHash)) {
             return;
         }
