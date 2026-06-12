@@ -27,11 +27,6 @@ import xyz.mijaljevic.utils.VisitorClassifier;
 @Provider
 public final class VisitorRecordInterceptor implements ContainerRequestFilter {
     /**
-     * Standard proxy header carrying the originating client address(es).
-     */
-    private static final String X_FORWARDED_FOR = "X-Forwarded-For";
-
-    /**
      * Running counts of visitors, fed one record per unique visit.
      */
     private final VisitorCounter visitorCounter;
@@ -103,22 +98,18 @@ public final class VisitorRecordInterceptor implements ContainerRequestFilter {
     }
 
     /**
-     * Resolves the originating client IP, preferring the first hop of the
-     * {@value #X_FORWARDED_FOR} header (set when running behind a reverse
-     * proxy) and falling back to the direct peer address.
+     * Resolves the originating client IP from the request's resolved remote
+     * address. With {@code quarkus.http.proxy.proxy-address-forwarding}
+     * enabled, Quarkus already rewrites this address from the forwarding
+     * headers of <i>trusted</i> proxies only (see
+     * {@code quarkus.http.proxy.trusted-proxies}), so we deliberately do not
+     * parse {@code X-Forwarded-For} ourselves: doing so would honour the header
+     * unconditionally and let clients spoof it.
      *
      * @return The client IP, or {@code null} when it cannot be determined.
      */
     @Nullable
     private String resolveClientIp() {
-        final String forwardedFor = routingContext.request().getHeader(X_FORWARDED_FOR);
-
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            final int comma = forwardedFor.indexOf(',');
-
-            return (comma >= 0 ? forwardedFor.substring(0, comma) : forwardedFor).trim();
-        }
-
         final SocketAddress remoteAddress = routingContext.request().remoteAddress();
 
         return remoteAddress == null ? null : remoteAddress.hostAddress();
