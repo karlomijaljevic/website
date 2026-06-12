@@ -27,8 +27,8 @@ public final class GlobalTemplateData {
         try (final InstanceHandle<VisitorCounter> instance = Arc.container().instance(VisitorCounter.class)) {
             return instance.get().snapshot();
         } catch (final Exception e) {
-            Log.errorf("Cannot get visitor count!", e);
-            return null;
+            Log.errorf(e, "Cannot get visitor count; defaulting to zeros.");
+            return new VisitorCount(0L, 0L, 0L);
         }
     }
 }
