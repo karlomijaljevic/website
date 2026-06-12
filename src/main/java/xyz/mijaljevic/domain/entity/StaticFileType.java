@@ -2,7 +2,7 @@ package xyz.mijaljevic.domain.entity;
 
 /**
  * Defines the static file types that the website serves. Currently, it
- * only servers (not including blog HTML pages):
+ * only serves (excluding blog HTML pages):
  * <ul>
  *      <li>CSS</li>
  *      <li>JS</li>
