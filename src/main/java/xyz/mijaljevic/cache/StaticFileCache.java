@@ -1,31 +1,8 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.cache;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import xyz.mijaljevic.domain.entity.StaticFile;
-import xyz.mijaljevic.domain.entity.StaticFile.Type;
+import xyz.mijaljevic.domain.entity.StaticFileType;
 
 import java.util.Collection;
 import java.util.List;
@@ -33,8 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Application scoped in-memory index of {@link StaticFile} models. Replaces the
- * former global static map and the H2/Hibernate persistence layer; this cache
+ * Application scoped in-memory index of {@link StaticFile} models; this cache
  * is the single source of truth for static files. Lookups by name are O(1).
  */
 @ApplicationScoped
@@ -78,11 +54,14 @@ public class StaticFileCache {
      * files whose backing file was removed.
      *
      * @param names The names that currently exist on disk.
-     * @param type  The {@link Type} to filter by.
+     * @param type  The {@link StaticFileType} to filter by.
      * @return The cached {@link StaticFile} models of the provided type missing
      * from the provided collection.
      */
-    public List<StaticFile> missing(final Collection<String> names, final Type type) {
+    public List<StaticFile> missing(
+            final Collection<String> names,
+            final StaticFileType type
+    ) {
         return byName.values()
                 .stream()
                 .filter(staticFile -> staticFile.getType() == type && !names.contains(staticFile.getName()))

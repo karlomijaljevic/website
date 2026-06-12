@@ -1,26 +1,3 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.web;
 
 import io.smallrye.common.annotation.NonBlocking;
@@ -37,6 +14,7 @@ import jakarta.ws.rs.core.Response.Status;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.cache.StaticFileCache;
 import xyz.mijaljevic.domain.entity.StaticFile;
+import xyz.mijaljevic.lifecycle.RequestContext;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -80,9 +58,10 @@ public final class StaticFileServer {
     private final StaticFileCache staticFileCache;
 
     /**
-     * Incoming request headers, used for conditional-request comparisons.
+     * Captures the request headers and provides the shared HTTP caching
+     * utilities.
      */
-    private final HttpHeaders httpHeaders;
+    private final RequestContext requestContext;
 
     /**
      * Creates the resource with its configuration and request headers.
@@ -92,7 +71,7 @@ public final class StaticFileServer {
      * @param imagesDirectoryPath The path to the images' directory.
      * @param cacheControl        The HTTP <i>Cache-Control</i> header value.
      * @param staticFileCache     The in-memory static file cache.
-     * @param httpHeaders         The incoming request {@link HttpHeaders}.
+     * @param requestContext  The shared HTTP caching utilities.
      */
     @Inject
     public StaticFileServer(
@@ -110,14 +89,14 @@ public final class StaticFileServer {
             ) final String imagesDirectoryPath,
             @ConfigProperty(name = "application.cache-control") final String cacheControl,
             final StaticFileCache staticFileCache,
-            final HttpHeaders httpHeaders
+            final RequestContext requestContext
     ) {
         this.cssPath = cssPath;
         this.scriptPath = scriptPath;
         this.imagesDirectoryPath = imagesDirectoryPath;
         this.cacheControl = cacheControl;
         this.staticFileCache = staticFileCache;
-        this.httpHeaders = httpHeaders;
+        this.requestContext = requestContext;
     }
 
     /**
@@ -131,14 +110,14 @@ public final class StaticFileServer {
     private static final int MAX_IMAGE_NAME_LENGTH = 80;
 
     /**
-     * HTTP <i>Last-Modified</i> header for the css file.
+     * HTTP <i>Last-Modified</i> header for the CSS file.
      */
-    private static final String LAST_MODIFIED = WebPage.parseLastModifiedTime(LocalDateTime.now());
+    private static final String LAST_MODIFIED = RequestContext.parseLastModifiedTime(LocalDateTime.now());
 
     /**
-     * HTTP <i>ETag</i> header for the css file.
+     * HTTP <i>ETag</i> header for the CSS file.
      */
-    private static final String E_TAG = WebPage.generateEtagHash(Instant.now().toString());
+    private static final String E_TAG = RequestContext.generateEtagHash(Instant.now().toString());
 
     /**
      * Serves the CSS file with caching headers.
@@ -199,34 +178,28 @@ public final class StaticFileServer {
             return returnBadRequest("The requested image name is NOT valid! Provided name: " + name);
         }
 
-        Matcher match = IMAGE_NAME_PATTERN.matcher(name);
+        final Matcher match = IMAGE_NAME_PATTERN.matcher(name);
 
         if (!match.matches()) {
             return returnBadRequest("The requested image name is NOT in proper format! Provided name: " + name);
         }
 
-        StaticFile staticFile = staticFileCache.byName(name);
+        final StaticFile staticFile = staticFileCache.byName(name);
 
         if (staticFile == null) {
             return returnBadRequest("Client tried to find a image with an unknown name!");
         }
 
-        String etag = staticFile.getHash();
-        String lastModified = WebPage.parseLastModifiedTime(staticFile.getModified());
+        final String etag = staticFile.getHash();
+        final String lastModified = RequestContext.parseLastModifiedTime(staticFile.getModified());
 
-        String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
-        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
-            return Response.status(Status.NOT_MODIFIED).build();
-        }
+        final Response notModified = requestContext.notModified(etag, lastModified);
 
-        String ifModifiedSince = httpHeaders.getHeaderString(HttpHeaders.IF_MODIFIED_SINCE);
-        if (ifModifiedSince != null && ifModifiedSince.equals(lastModified)) {
-            return Response.status(Status.NOT_MODIFIED).build();
-        }
+        if (notModified != null) return notModified;
 
-        String pathString = imagesDirectoryPath + File.separator + name;
+        final String pathString = imagesDirectoryPath + File.separator + name;
 
-        java.nio.file.Path path = Paths.get(pathString);
+        final java.nio.file.Path path = Paths.get(pathString);
 
         if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
             return Response.status(Status.NOT_FOUND).build();
@@ -249,7 +222,7 @@ public final class StaticFileServer {
      * {@link JsonObject} entity.
      */
     private static Response returnBadRequest(final String message) {
-        JsonObject response = new JsonObject();
+        final JsonObject response = new JsonObject();
 
         response.put("message", message);
 

@@ -1,26 +1,3 @@
-/**
- * Copyright (C) 2025 Karlo Mijaljević
- *
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * </p>
- *
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * </p>
- *
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * </p>
- */
-
 package xyz.mijaljevic.web;
 
 import io.quarkus.qute.Location;
@@ -33,13 +10,13 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.cache.BlogCache;
 import xyz.mijaljevic.cache.BlogRenderer;
 import xyz.mijaljevic.domain.dto.RssItem;
 import xyz.mijaljevic.domain.entity.Blog;
+import xyz.mijaljevic.lifecycle.RequestContext;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -48,8 +25,7 @@ import java.util.List;
 
 /**
  * Serves the RSS feed. The feed is rendered on demand from the in-memory
- * {@link BlogCache} through the {@code rss.xml} Qute template; there is no
- * persisted feed and no JAXB binding anymore.
+ * {@link BlogCache} through the {@code rss.xml} Qute template.
  */
 @PermitAll
 @Path("/rss")
@@ -76,9 +52,10 @@ public final class RssFeed {
     private final String cacheControl;
 
     /**
-     * Incoming request headers, used for conditional-request comparisons.
+     * Captures the request headers and provides the shared HTTP caching
+     * utilities.
      */
-    private final HttpHeaders httpHeaders;
+    private final RequestContext requestContext;
 
     /**
      * The {@code rss.xml} Qute template that renders the feed.
@@ -100,7 +77,7 @@ public final class RssFeed {
      * and caches.
      *
      * @param cacheControl The HTTP <i>Cache-Control</i> header value.
-     * @param httpHeaders  The incoming request {@link HttpHeaders}.
+     * @param requestContext The shared HTTP caching utilities.
      * @param rss          The {@code rss.xml} Qute template.
      * @param blogCache    The in-memory blog cache.
      * @param blogRenderer The on-demand blog HTML renderer.
@@ -108,13 +85,13 @@ public final class RssFeed {
     @Inject
     public RssFeed(
             @ConfigProperty(name = "application.cache-control") final String cacheControl,
-            final HttpHeaders httpHeaders,
+            final RequestContext requestContext,
             @Location("rss.xml") final Template rss,
             final BlogCache blogCache,
             final BlogRenderer blogRenderer
     ) {
         this.cacheControl = cacheControl;
-        this.httpHeaders = httpHeaders;
+        this.requestContext = requestContext;
         this.rss = rss;
         this.blogCache = blogCache;
         this.blogRenderer = blogRenderer;
@@ -124,26 +101,20 @@ public final class RssFeed {
      * Serves the RSS feed XML with conditional-request caching headers. The feed
      * is rendered from the current {@link BlogCache} contents on every call.
      *
-     * <p>
-     * Intentionally not {@code @NonBlocking}: item bodies are rendered through
-     * the Quarkus {@code @CacheResult} renderer, whose synchronous lookup blocks
-     * the calling thread, which must not happen on the Vert.x event loop.
-     * </p>
-     *
      * @return The RSS feed {@link Response}, or a 304 if the client cache is
      * current.
      */
     @GET
     @Produces(MediaType.TEXT_XML)
     public Response getRss() {
-        List<Blog> recent = blogCache.recent();
+        final List<Blog> recent = blogCache.recent();
 
-        List<RssItem> items = new ArrayList<>();
+        final List<RssItem> items = new ArrayList<>();
 
         for (Blog blog : recent) {
-            String link = WEBSITE_URL + "blog/" + blog.getSlug();
+            final String link = WEBSITE_URL + "blog/" + blog.getSlug();
 
-            String pubDate = blog.getCreated()
+            final String pubDate = blog.getCreated()
                     .atZone(Website.TIME_ZONE)
                     .format(RSS_SPEC_FORMAT);
 
@@ -156,33 +127,27 @@ public final class RssFeed {
             ));
         }
 
-        String lastBuildDate = recent.stream()
+        final String lastBuildDate = recent.stream()
                 .findFirst()
                 .map(blog -> blog.getCreated()
                         .atZone(Website.TIME_ZONE)
                         .format(RSS_SPEC_FORMAT))
                 .orElse(DEFAULT_LAST_BUILD_DATE);
 
-        String rssFeed = rss.data("lastBuildDate", lastBuildDate)
+        final String rssFeed = rss.data("lastBuildDate", lastBuildDate)
                 .data("items", items)
                 .render();
 
-        String etag = String.valueOf(rssFeed.hashCode());
+        final String etag = String.valueOf(rssFeed.hashCode());
 
-        String lastModified = WebPage.parseLastModifiedTime(LocalDateTime.parse(
+        final String lastModified = RequestContext.parseLastModifiedTime(LocalDateTime.parse(
                 lastBuildDate,
                 RSS_SPEC_FORMAT
         ));
 
-        String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
-        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
-            return Response.status(Status.NOT_MODIFIED).build();
-        }
+        final Response notModified = requestContext.notModified(etag, lastModified);
 
-        String ifModifiedSince = httpHeaders.getHeaderString(HttpHeaders.IF_MODIFIED_SINCE);
-        if (ifModifiedSince != null && ifModifiedSince.equals(lastModified)) {
-            return Response.status(Status.NOT_MODIFIED).build();
-        }
+        if (notModified != null) return notModified;
 
         return Response.ok()
                 .entity(rssFeed)
