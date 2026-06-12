@@ -97,7 +97,7 @@ public final class UniqueVisitTracker {
         final boolean[] isNew = {false};
 
         lastSeen.compute(visitorKey, (key, openedAt) -> {
-            Log.debugf("Visitor %s: opened at %d", key, openedAt);
+            Log.debugf("Visitor %s: opened at %s", key, openedAt);
 
             if (openedAt == null || now - openedAt >= windowMillis) {
                 isNew[0] = true;
