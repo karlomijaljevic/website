@@ -5,13 +5,14 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * <p>
  * A plain in-memory model that represents a blog. The blog cache is the single
  * source of truth; the <i>created</i> and <i>updated</i> values are derived
- * from the backing file's filesystem attributes and set by the scheduler that
- * reconciles the blogs' directory.
+ * from the backing file's {@code Date}/{@code Updated} front-matter metadata
+ * and set by the scheduler that reconciles the blogs' directory.
  * </p>
  *
  * <p>
@@ -30,9 +31,22 @@ public class Blog implements Comparable<Blog> {
     private static final DateTimeFormatter WEBSITE_DATE_PATTERN = DateTimeFormatter.ofPattern("dd-MMM-uuuu");
 
     /**
-     * Title of the blog. Derived from the first heading of the Markdown file.
+     * Title of the blog. Derived from the {@code Title} front-matter metadata
+     * tag, falling back to the first heading of the Markdown file.
      */
     private String title;
+
+    /**
+     * Author of the blog. Derived from the {@code Author} front-matter metadata
+     * tag; {@code null} when the tag is absent.
+     */
+    private String author;
+
+    /**
+     * Tags of the blog. Derived from the {@code Tags} front-matter metadata
+     * tag; empty when the tag is absent.
+     */
+    private List<String> tags = List.of();
 
     /**
      * URL slug derived from the blog title. Used as the public identifier in
@@ -51,13 +65,15 @@ public class Blog implements Comparable<Blog> {
     private String hash;
 
     /**
-     * Creation timestamp, derived from the backing file's creation time.
+     * Creation timestamp, derived from the {@code Date} front-matter metadata
+     * tag (at start of day). A blog without a parseable {@code Date} is
+     * rejected, so this is never {@code null} for a cached blog.
      */
     private LocalDateTime created;
 
     /**
-     * Update timestamp, derived from the backing file's last-modified time.
-     * Left {@code null} when it does not differ from {@link #created}.
+     * Update timestamp, derived from the {@code Updated} front-matter metadata
+     * tag (at start of day). Left {@code null} when the tag is absent.
      */
     private LocalDateTime updated;
 

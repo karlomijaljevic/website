@@ -9,13 +9,13 @@
 	{#include core/head /}
 	<body>
 		{#include core/header /}
-		{data.raw}
-		<div id="blog-metadata">
-			<span class="blog-medatada-date">Created at: {blog.parseCreated()}</span>
+		<div class="blog-meta">
+			<span class="blog-meta-item">published {blog.parseCreated()}</span>
 			{#if !blog.parseUpdated().isEmpty()}
-			<span class="blog-medatada-date">Updated at: {blog.parseUpdated()}</span>
+			<span class="blog-meta-item">updated {blog.parseUpdated()}</span>
 			{/if}
 		</div>
+		{data.raw}
 		{#include core/footer /}
 	</body>
 </html>
