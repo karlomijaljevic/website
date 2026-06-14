@@ -1,37 +1,36 @@
 package xyz.mijaljevic.scheduler;
 
-import io.quarkus.logging.Log;
-import io.quarkus.runtime.Quarkus;
-import io.quarkus.runtime.Startup;
-import io.quarkus.scheduler.Scheduled;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+
+import io.quarkus.logging.Log;
+import io.quarkus.runtime.Quarkus;
+import io.quarkus.runtime.Startup;
+import io.quarkus.scheduler.Scheduled;
 import xyz.mijaljevic.Website;
 import xyz.mijaljevic.cache.BlogCache;
 import xyz.mijaljevic.cache.BlogRenderer;
+import xyz.mijaljevic.domain.dto.BlogMetadata;
 import xyz.mijaljevic.domain.entity.Blog;
 import xyz.mijaljevic.lifecycle.DirectoryProvisioner;
 import xyz.mijaljevic.utils.FileUtils;
 import xyz.mijaljevic.utils.MarkdownParser;
 import xyz.mijaljevic.utils.Slugs;
 import xyz.mijaljevic.web.WebPage;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Scheduler that contains a scheduled method that runs every 5 minutes and
@@ -155,11 +154,7 @@ final class BlogScheduler {
      * and this method creates/updates/deletes entries in the
      * {@link BlogCache} accordingly.
      */
-    @Scheduled(
-            identity = "blog_scheduler",
-            every = "5m",
-            delayed = "5s"
-    )
+    @Scheduled(identity = "blog_scheduler", every = "5m", delayed = "5s")
     void runBlogScheduler() {
         if (!watchKeyValid) {
             Log.fatal("BLOG - WatchKey NOT valid! Stopping scheduler!");
@@ -177,7 +172,8 @@ final class BlogScheduler {
                 continue;
             }
 
-            @SuppressWarnings("unchecked") final WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            @SuppressWarnings("unchecked")
+            final WatchEvent<Path> ev = (WatchEvent<Path>) event;
 
             final Path filename = ev.context();
 
@@ -215,12 +211,15 @@ final class BlogScheduler {
     /**
      * Consumes the provided {@link Blog} {@link File} and either updates or
      * creates a blog model depending on the state of the blog file against the
-     * model in the cache. The created/updated timestamps are derived from the
-     * file's filesystem attributes.
+     * model in the cache. The title is derived from the file's front-matter
+     * metadata when present, falling back to the first heading. The created and
+     * updated timestamps come solely from the {@code Date}/{@code Updated}
+     * metadata; a file without a parseable {@code Date} is rejected.
      *
      * @param file A blog file to consume.
-     * @return False in case it failed to parse the file and true if the
-     * process was successful.
+     * @return False in case it failed to parse the file or the file carries no
+     *         parseable {@code Date} metadata, and true if the process was
+     *         successful.
      */
     private boolean consumeBlogFile(@Nonnull final File file) {
         final String fileName = file.getName();
@@ -249,31 +248,25 @@ final class BlogScheduler {
             return true;
         }
 
-        final String title = MarkdownParser.getTitleFromFile(file);
+        final BlogMetadata metadata = MarkdownParser.parseMetadata(file);
+
+        final String title = metadata.title() != null && !metadata.title().isBlank()
+                ? metadata.title()
+                : MarkdownParser.getTitleFromFile(file);
 
         blog.setTitle(title);
         blog.setSlug(Slugs.slugify(title));
+        blog.setAuthor(metadata.author());
+        blog.setTags(metadata.tags());
         blog.setHash(hash);
 
-        try {
-            final BasicFileAttributes attributes = Files.readAttributes(
-                    file.toPath(),
-                    BasicFileAttributes.class);
-
-            final LocalDateTime created = LocalDateTime.ofInstant(
-                    attributes.creationTime().toInstant(),
-                    Website.TIME_ZONE);
-
-            final LocalDateTime modified = LocalDateTime.ofInstant(
-                    attributes.lastModifiedTime().toInstant(),
-                    Website.TIME_ZONE);
-
-            blog.setCreated(created);
-            blog.setUpdated(created.isEqual(modified) ? null : modified);
-        } catch (IOException e) {
-            Log.errorf(e, "Failed to read file attributes for %s", fileName);
+        if (metadata.date() == null) {
+            Log.errorf("Blog file %s has no parseable Date metadata; skipping.", fileName);
             return false;
         }
+
+        blog.setCreated(metadata.date().atStartOfDay());
+        blog.setUpdated(metadata.updated() != null ? metadata.updated().atStartOfDay() : null);
 
         blogCache.put(blog);
 

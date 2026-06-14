@@ -7,6 +7,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -41,6 +42,23 @@ public final class BlogsDirectoryTestResource implements QuarkusTestResourceLife
     public static final String ALPHA_FILE = "alpha.md";
 
     /**
+     * Author declared in the first seeded blog's front-matter metadata.
+     */
+    public static final String ALPHA_AUTHOR = "Test Author";
+
+    /**
+     * Created timestamp derived from the first seeded blog's {@code Date}
+     * front-matter metadata ({@code 2-Jan-2020}), at start of day.
+     */
+    public static final LocalDateTime ALPHA_CREATED = LocalDateTime.of(2020, 1, 2, 0, 0);
+
+    /**
+     * Updated timestamp derived from the first seeded blog's {@code Updated}
+     * front-matter metadata ({@code 5-Mar-2020}), at start of day.
+     */
+    public static final LocalDateTime ALPHA_UPDATED = LocalDateTime.of(2020, 3, 5, 0, 0);
+
+    /**
      * Title of the second seeded blog.
      */
     public static final String BETA_TITLE = "Beta Post";
@@ -71,6 +89,13 @@ public final class BlogsDirectoryTestResource implements QuarkusTestResourceLife
     public static final String GAMMA_FILE = "gamma.md";
 
     /**
+     * Created timestamp derived from the second seeded blog's {@code Date}
+     * front-matter metadata ({@code 15-Jun-2021}), at start of day. Beta carries
+     * no {@code Title}, so its title still falls back to the heading.
+     */
+    public static final LocalDateTime BETA_CREATED = LocalDateTime.of(2021, 6, 15, 0, 0);
+
+    /**
      * Number of blogs seeded into the temporary directory.
      */
     public static final int SEEDED_BLOG_COUNT = 3;
@@ -85,9 +110,40 @@ public final class BlogsDirectoryTestResource implements QuarkusTestResourceLife
         try {
             blogsDir = Files.createTempDirectory("website-test-blogs");
 
-            write(ALPHA_FILE, "# " + ALPHA_TITLE + "\n\nThe **alpha** body with a [link](https://example.com).\n");
-            write(BETA_FILE, "# " + BETA_TITLE + "\n\nThe beta body & it carries an ampersand.\n");
-            write(GAMMA_FILE, "# " + GAMMA_TITLE + "\n\nThe gamma body with `inline code`.\n");
+            // Alpha carries a full front-matter block: its title and created
+            // date are driven by the metadata, not the heading or filesystem.
+            write(ALPHA_FILE, """
+                    ---
+                    Title: %s
+                    Author: %s
+                    Date: 2-Jan-2020
+                    Updated: 5-Mar-2020
+                    Tags: alpha, test
+                    ---
+                    # Heading ignored in favour of metadata title
+
+                    The **alpha** body with a [link](https://example.com).
+                    """.formatted(ALPHA_TITLE, ALPHA_AUTHOR));
+            // Beta carries only a Date (the created timestamp has no filesystem
+            // fallback): its title still falls back to the heading and its
+            // author/tags stay empty.
+            write(BETA_FILE, """
+                    ---
+                    Date: 15-Jun-2021
+                    ---
+                    # %s
+
+                    The beta body & it carries an ampersand.
+                    """.formatted(BETA_TITLE));
+            // Gamma likewise carries only a Date.
+            write(GAMMA_FILE, """
+                    ---
+                    Date: 20-Sep-2022
+                    ---
+                    # %s
+
+                    The gamma body with `inline code`.
+                    """.formatted(GAMMA_TITLE));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to seed test blogs directory", e);
         }

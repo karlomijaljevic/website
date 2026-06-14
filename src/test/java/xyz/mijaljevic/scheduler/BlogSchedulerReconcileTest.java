@@ -17,7 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration test for the blog scheduler's startup reconcile: the
  * {@code @PostConstruct} pass must populate the {@link BlogCache} from the
  * seeded blogs directory, indexing every file by slug and deriving the
- * timestamps from the backing file's filesystem attributes.
+ * timestamps from each file's {@code Date}/{@code Updated} front-matter
+ * metadata.
  */
 @QuarkusTest
 @QuarkusTestResource(value = BlogsDirectoryTestResource.class, restrictToAnnotatedClass = true)
@@ -43,8 +44,34 @@ class BlogSchedulerReconcileTest {
         assertThat(alpha.getTitle()).isEqualTo(BlogsDirectoryTestResource.ALPHA_TITLE);
         assertThat(alpha.getFileName()).isEqualTo(BlogsDirectoryTestResource.ALPHA_FILE);
         assertThat(alpha.getHash()).isNotBlank();
-        // Timestamps are derived from the filesystem, never left null on created.
+        // Created, title, author and tags are all driven by alpha's metadata.
         assertThat(alpha.getCreated()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Front-matter metadata drives a blog's title, author, tags and created date")
+    void startupReconcile_metadataDrivesBlogFields() {
+        Blog alpha = blogCache.bySlug(BlogsDirectoryTestResource.ALPHA_SLUG);
+        Blog beta = blogCache.bySlug(BlogsDirectoryTestResource.BETA_SLUG);
+
+        assertThat(alpha).isNotNull();
+        assertThat(beta).isNotNull();
+
+        // Alpha carries metadata: title, author, tags, created and updated all
+        // come from the front-matter block rather than the heading.
+        assertThat(alpha.getTitle()).isEqualTo(BlogsDirectoryTestResource.ALPHA_TITLE);
+        assertThat(alpha.getAuthor()).isEqualTo(BlogsDirectoryTestResource.ALPHA_AUTHOR);
+        assertThat(alpha.getTags()).containsExactly("alpha", "test");
+        assertThat(alpha.getCreated()).isEqualTo(BlogsDirectoryTestResource.ALPHA_CREATED);
+        assertThat(alpha.getUpdated()).isEqualTo(BlogsDirectoryTestResource.ALPHA_UPDATED);
+
+        // Beta carries only a Date: title falls back to the heading, author/tags
+        // stay empty, created comes from the metadata, updated stays null.
+        assertThat(beta.getTitle()).isEqualTo(BlogsDirectoryTestResource.BETA_TITLE);
+        assertThat(beta.getAuthor()).isNull();
+        assertThat(beta.getTags()).isEmpty();
+        assertThat(beta.getCreated()).isEqualTo(BlogsDirectoryTestResource.BETA_CREATED);
+        assertThat(beta.getUpdated()).isNull();
     }
 
     @Test
